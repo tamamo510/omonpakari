@@ -1,0 +1,12 @@
+name: omonpakari
+version: 0.1.0
+manifest_version: 2
+api_version: 1
+description: An unhurried health companion. Weather pressure, symptom and medication notes that the agent keeps in mind quietly and never nags about.
+license: MIT
+homepage: https://github.com/tamamo510/omonpakari
+tags: [health, weather, wellbeing, local-first]
+requires_hermes: ">=0.22.0"
+# 骨組みの段では、まだ何も登録しない。登録する道具とフックが入るたびに、ここへ同じ名を足す。
+provides_tools: []
+provides_hooks: []

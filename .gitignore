@@ -1,0 +1,13 @@
+# 鍵は家に一文字も置かない
+.env
+.env.*
+
+# Python の作業のかけら（カタログの決まりで、.pyc を家に置かない）
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+dist/
+build/
