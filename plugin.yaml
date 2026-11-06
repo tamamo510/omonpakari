@@ -2,11 +2,66 @@ name: omonpakari
 version: 0.1.0
 manifest_version: 2
 api_version: 1
-description: An unhurried health companion. Weather pressure, symptom and medication notes that the agent keeps in mind quietly and never nags about.
+description: "Quiet barometric-pressure and symptom journal for Hermes: three tools, a pre_llm_call context hook and durable plugin_db storage. It never messages the user on its own."
+author: tamamo510
 license: MIT
 homepage: https://github.com/tamamo510/omonpakari
-tags: [health, weather, wellbeing, local-first]
+tags: [health, weather, barometric-pressure, journal, local-first]
 requires_hermes: ">=0.22.0"
-# 骨組みの段では、まだ何も登録しない。登録する道具とフックが入るたびに、ここへ同じ名を足す。
-provides_tools: []
-provides_hooks: []
+# 登録するものと一字も違えずにそろえる（そろわないと照らしで落ちる）
+provides_tools:
+  - omonpakari_pressure
+  - omonpakari_log
+  - omonpakari_correlate
+provides_hooks:
+  - pre_llm_call
+requires_env:
+  - name: OPENWEATHER_API_KEY
+    description: "OpenWeather API key (the free tier works). Only the pressure tool uses it; journaling works without it."
+    url: "https://openweathermap.org/api"
+    secret: true
+# 座標の既定値は持たない。使う人が設定か道具の引数で渡した時だけ使う
+config_schema:
+  openweather_api_key:
+    type: secret
+    env: OPENWEATHER_API_KEY
+    label: "OpenWeather API key"
+    description: "Stored in .env, read through Hermes. Never written to config.yaml."
+  latitude:
+    type: float
+    required: false
+    label: "Latitude"
+    description: "Where pressure is looked up, in decimal degrees. Leave empty to pass it per call."
+  longitude:
+    type: float
+    required: false
+    label: "Longitude"
+    description: "Where pressure is looked up, in decimal degrees. Leave empty to pass it per call."
+  low_hpa:
+    type: float
+    default: 1010
+    description: "Pressure below this (hPa) is labelled low."
+  very_low_hpa:
+    type: float
+    default: 1003
+    description: "Pressure below this (hPa) is labelled very_low."
+  high_hpa:
+    type: float
+    default: 1020
+    description: "Pressure above this (hPa) is labelled high."
+  drop_hpa:
+    type: float
+    default: 6
+    description: "A drop of at least this many hPa within window_h counts as falling."
+  window_h:
+    type: int
+    default: 24
+    description: "Hours used for past and forecast pressure change (3-72)."
+  quiet_context:
+    type: bool
+    default: true
+    description: "Place a short background note before each reply. Turn off to keep tools only."
+  background_refresh:
+    type: bool
+    default: true
+    description: "When the saved location and key are set, refresh pressure at most once an hour, only during a turn the user started."
