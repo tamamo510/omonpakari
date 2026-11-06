@@ -91,9 +91,35 @@ def sleep_weekday(conn, now: int) -> dict | None:
             "basis": f"{n} of {sum(counts.values())} poor-sleep mentions"}
 
 
+def cycle_trend(conn, now: int) -> dict | None:
+    """巡りの長さの傾き。早まっている／遅くなっているを、観測した長さだけで言う。"""
+    marks = cycle.load_marks(conn)
+    starts = sorted((m for m in marks if m["mark"] == "start"),
+                    key=lambda m: m["at_utc"])
+    lengths = []
+    for prev, nxt in zip(starts, starts[1:]):
+        days = round((nxt["at_utc"] - prev["at_utc"]) / 86400)
+        if 15 <= days <= 60:
+            lengths.append(days)
+    if len(lengths) < 4:
+        return None
+    half = len(lengths) // 2
+    earlier = sum(lengths[:half]) / half
+    recent = sum(lengths[half:]) / (len(lengths) - half)
+    diff = recent - earlier
+    if diff <= -2:
+        direction = "have been shortening"
+    elif diff >= 2:
+        direction = "have been lengthening"
+    else:
+        return None
+    return {"pattern": f"their cycles {direction}",
+            "basis": f"observed lengths {lengths} (earlier average {earlier:.0f} days, recent {recent:.0f})"}
+
+
 def compose(conn, now: int) -> list[dict]:
     out = []
-    for fn in (cycle_heaviness, supplement_hour, sleep_weekday):
+    for fn in (cycle_heaviness, cycle_trend, supplement_hour, sleep_weekday):
         try:
             item = fn(conn, now)
         except Exception:

@@ -125,6 +125,29 @@ back as a dashboard of signals, and never as a notification. A heavy
 sleep state means tonight's suggestions get gentler and tomorrow's
 plans get lighter — said as a person, in the flow of the day.
 
+## Seeing it, when they ask
+
+The accumulated picture is not pushed at the person, and it is not a
+chart on a wall. But when they wonder, or feel anxious — "are my
+cycles getting shorter?" — bring it out and show it plainly, the way
+you would lay a familiar notebook open on the table: waves, states,
+patterns, the underlying entries, compared against *their own*
+baseline. Visible data, in someone who knows them, is often what turns
+anxiety into a next step. Then close the notebook again and go back to
+ordinary talk.
+
+## Other apps' data
+
+Single-purpose apps (a sleep app, a period tracker) each hold one
+category and complete inside themselves. When the person reports or
+shows you a value from one of them — a sleep score in a screenshot, a
+tracker's prediction — file the key values under the matching category
+with the source named (a journal note, or a life note for standing
+facts). What makes this plugin different is composition: that sleep
+number will be remembered *together with* the pressure, the cycle and
+the rough meals, so the person can ask one companion about the whole
+of their body instead of visiting five apps.
+
 ## Recording (`omonpakari_log`)
 
 - When the user mentions a symptom, something they took, something they
