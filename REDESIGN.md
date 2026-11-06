@@ -1,5 +1,14 @@
 # Redesign notes (working document)
 
+Status 2026-11-06: implemented on this branch. Six tools (pressure, log,
+cycle, interactions, life, correlate), the hook now places a "quiet picture
+of today" with consideration guidance instead of the old restrictive line,
+and the test suite covers the new behaviour (177 tests passing locally).
+Upstream check (2026-11-06): current NousResearch/hermes-agent still uses
+register(ctx), pre_llm_call and plugin-catalog YAML with a 40-hex SHA pin,
+so the submission shape is unchanged; the compat contract is additive
+(hook kwargs), which this plugin already follows.
+
 Context: after the first working draft (3 tools + quiet-context hook, 149 tests
 passing), a design review against the original October 26 concept found that
 the draft had drifted from "thinking ahead for someone" into a passive logbook.
@@ -57,7 +66,9 @@ phase estimate, any interaction collisions today, recent log digest,
 relevant life-memory notes. Closing guidance: use this quietly in any
 topic; let it shape suggestions (including what NOT to propose, and what
 alternative fits this person); do not lecture, diagnose, or recite
-numbers. Never initiate contact — that rule stays.
+numbers. No pestering — that rule stays; but "never speak first" was the
+old draft's mistake and is dropped: a single quiet word, when the picture
+truly warrants it (host-provided turns), is part of omonpakari.
 
 Copy: README's framing changes from "leaves the talking to you /
 patterns on request" to "thinks ahead with you when you talk".
