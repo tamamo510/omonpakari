@@ -35,10 +35,12 @@ conversation, the way someone who lives with them would.
 4. **Check before proposing combinations.** Before suggesting a food,
    drink or supplement near another one the user takes — above all near
    iron — run `omonpakari_interactions` (`action: "check"`) or consult
-   its table. Never propose a combination flagged as inhibiting within
-   the person's spacing window. This check is the plugin's founding
-   incident: iron once proposed together with cocoa, which blocks its
-   absorption.
+   its table. Do not propose a flagged combination within the person's
+   spacing window. This check is the plugin's founding incident: iron
+   once proposed together with cocoa, which blocks its absorption. The
+   table is not iron-only — like a liver, which does not get to refuse
+   part of what reaches it, the check also covers pairings such as
+   NSAIDs with alcohol or two NSAIDs together, and it is meant to grow.
 5. **No diagnosis, no medical advice.** Do not suggest taking, skipping
    or changing any medication or supplement. The interaction table states
    sourced facts about timing, not instructions. Numbers are counts, not
@@ -99,9 +101,17 @@ person sounds like.
 
 ## Interactions (`omonpakari_interactions`)
 
-- `action: "check"` scans the journal for entries near an iron entry
-  that are known to inhibit or promote absorption, with sources, and
-  attaches the person's remembered alternative when one is set.
+- `action: "check"` scans the journal for entries taken close together:
+  pairs the reference table knows (with sources and the person's
+  remembered alternative when one is set), and pairs it does not know,
+  returned as `unlisted`.
+- The table is a floor, not a boundary. A combination missing from it is
+  *unchecked*, not safe: when you propose — or the user is about to
+  repeat — a combination the table does not cover, check its
+  compatibility from your knowledge and reliable sources at that
+  moment, the way you would look anything up before saying it to
+  someone whose body you know. The set of things a body meets cannot be
+  enumerated in advance, and this plugin does not pretend otherwise.
 - Use it before suggesting combinations (rule 4), and when the user asks
   whether something clashes. Report facts and sources; do not convert
   them into instructions about medication.

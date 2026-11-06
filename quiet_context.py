@@ -185,15 +185,17 @@ def _cycle_line(conn, now: int) -> tuple[Optional[str], Any]:
 
 def _interaction_lines(conn, now: int, settings: Settings) -> tuple[list[str], Any]:
     """今日の吸収の衝突を、事実として短く。代替の覚えがあれば一緒に。"""
-    hits = interactions.scan(conn, now, 1, settings.interaction_window_h())
+    hits = [h for h in interactions.scan(conn, now, 1, settings.interaction_window_h())
+            if h["effect"] != "unlisted"]  # 未照合の組は札には載せない（道具で聞かれた時に返す）
     lines = []
     for hit in hits:
-        text = (f"{_clean_label(hit['other_entry']['label'])} ({hit['substance']}, {hit['effect']}) "
-                f"{abs(hit['minutes_apart'])} min from {_clean_label(hit['iron_entry']['label'])}")
+        first, second = hit["entries"][0], hit["entries"][1]
+        text = (f"{_clean_label(second['label'])} ({hit['substance']}, {hit['effect']}) "
+                f"{abs(hit['minutes_apart'])} min from {_clean_label(first['label'])}")
         for alt in hit.get("person_alternative", [])[:1]:
             text += f"; person's alternative: {_clean_label(alt['text'])}"
         lines.append(text)
-    fingerprint = [(h["substance"], h["other_entry"]["at"], h["iron_entry"]["at"]) for h in hits]
+    fingerprint = [(h["substance"], h["entries"][1]["at"], h["entries"][0]["at"]) for h in hits]
     return lines, fingerprint
 
 

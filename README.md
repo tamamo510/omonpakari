@@ -23,12 +23,14 @@ would.
 - **A cycle that respects irregularity.** Period starts and ends, observed
   cycle lengths, the next window returned as a **range of dates** (never a
   single predicted day), and the current phase as a tentative estimate.
-- **Absorption checks, with sources.** A reference table of common
-  interactions around iron (cocoa, tea tannins, coffee, soy protein,
-  calcium and other minerals inhibit it; vitamin C and citric acid help),
-  matched against your journal by time. If your iron and a cocoa land within
-  your spacing window, that is reported as a fact — before the agent ever
-  proposes the combination.
+- **Interaction checks, with sources.** A reference table of common
+  interactions — absorption around iron (cocoa, tea tannins, coffee, soy
+  protein, calcium and other minerals inhibit it; vitamin C and citric acid
+  help), and pairings beyond iron, such as NSAIDs with alcohol, two NSAIDs
+  together, or acetaminophen with alcohol — matched against your journal by
+  time and reported as facts, before the agent ever proposes the
+  combination. The table is a starting set, meant to grow: an organ does
+  not get to declare part of what reaches it "not my department".
 - **Life notes: the person's own alternatives.** Habits and usual choices
   the user teaches ("in the morning I drink hojicha, non-caffeine"), stored
   in their words. When a suggestion conflicts with their body, the agent can
