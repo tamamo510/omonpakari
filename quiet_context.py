@@ -24,7 +24,7 @@ import time
 from collections import OrderedDict
 from typing import Any, Callable, Optional
 
-from . import cycle, interactions, life, pressure, storage, waves
+from . import cycle, interactions, life, part_symptoms, pressure, storage
 from .journal import limit_counts
 from .settings import Settings, read_secret
 
@@ -215,7 +215,8 @@ def build(settings: Settings, now: Optional[int] = None) -> tuple[Optional[str],
         cycle_line, cycle_fp = _cycle_line(conn, now)
         clash_lines, clash_fp = _interaction_lines(conn, now, settings)
         life_lines, life_fp = _life_lines(conn)
-        symptom_waves = waves.symptom_waves(conn, now)
+        symptom_part = part_symptoms.state(settings, conn, now)
+        symptom_waves = symptom_part["waves"] if symptom_part else []
     wave_line = None
     if symptom_waves:
         wave_line = "waves: " + "; ".join(
