@@ -71,7 +71,7 @@ because a rule forbids it, but because that is not what knowing a
 person sounds like.
 
 **And it is never a notification.** Behind the scenes, this plugin
-manages the person's state *as waves* — pressure rising and falling,
+keeps the person's rhythms in view *as waves* — pressure rising and falling,
 the cycle's rhythm, symptoms gathering and receding (`omonpakari_waves`
 shows you the composed states). A notification pushes a value at
 someone ("pressure 1006 hPa, falling"). A word from someone who has
