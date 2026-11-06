@@ -24,7 +24,7 @@ import time
 from collections import OrderedDict
 from typing import Any, Callable, Optional
 
-from . import cycle, interactions, life, pressure, storage
+from . import cycle, interactions, life, pressure, storage, waves
 from .journal import limit_counts
 from .settings import Settings, read_secret
 
@@ -215,8 +215,14 @@ def build(settings: Settings, now: Optional[int] = None) -> tuple[Optional[str],
         cycle_line, cycle_fp = _cycle_line(conn, now)
         clash_lines, clash_fp = _interaction_lines(conn, now, settings)
         life_lines, life_fp = _life_lines(conn)
+        symptom_waves = waves.symptom_waves(conn, now)
+    wave_line = None
+    if symptom_waves:
+        wave_line = "waves: " + "; ".join(
+            f"{_clean_label(w['label'])} {w['direction']} ({w['this_week']} vs {w['last_week']})"
+            for w in symptom_waves) + "."
     if (pressure_line is None and not items and not limits and cycle_line is None
-            and not clash_lines and not life_lines):
+            and not clash_lines and not life_lines and wave_line is None):
         return None, None
 
     tail = "\n" + FOOTER + "\n</omonpakari>"
@@ -227,6 +233,8 @@ def build(settings: Settings, now: Optional[int] = None) -> tuple[Optional[str],
             lines.append(pressure_line)
         if cycle_line:
             lines.append(cycle_line)
+        if wave_line:
+            lines.append(wave_line)
         if clash_lines:
             lines.append("interactions today: " + "; ".join(clash_lines) + ".")
         if journal_items:
@@ -254,7 +262,9 @@ def build(settings: Settings, now: Optional[int] = None) -> tuple[Optional[str],
     if len(text) > MAX_CHARS:
         body = text[: len(text) - len(tail)]
         text = body[: MAX_CHARS - len(tail) - 1] + "…" + tail
-    fingerprint = json.dumps([pressure_fp, journal_fp, cycle_fp, clash_fp, life_fp], default=str)
+    fingerprint = json.dumps([pressure_fp, journal_fp, cycle_fp, clash_fp, life_fp,
+                              [(w["label"], w["direction"], w["this_week"]) for w in symptom_waves]],
+                             default=str)
     return text, fingerprint
 
 

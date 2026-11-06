@@ -1,6 +1,6 @@
 """omonpakari（慮り）――急かさない体調の見守りの、Hermes のプラグイン。
 
-道具は6つ（気圧、記録、生理の巡り、吸収の照らし、暮らしの記憶、相関）、
+道具は7つ（気圧、記録、生理の巡り、吸収の照らし、暮らしの記憶、波の合成、相関）、
 フックは1つ（pre_llm_call）、添えのスキルが1つ。
 記録は上流の plugin_db に置き、鍵は上流の get_secret で読む。
 
@@ -18,7 +18,7 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from . import correlate, cycle, interactions, journal, life, pressure, quiet_context
+from . import correlate, cycle, interactions, journal, life, pressure, quiet_context, waves
 from .settings import API_KEY_NAME, Settings
 
 logger = logging.getLogger(__name__)
@@ -64,10 +64,15 @@ def register(ctx) -> None:
         description=life.SCHEMA["description"], emoji="🏠",
     )
     ctx.register_tool(
+        name=waves.TOOL_NAME, toolset=TOOLSET, schema=waves.SCHEMA,
+        handler=waves.make_handler(settings),
+        description=waves.SCHEMA["description"], emoji="🌊",
+    )
+    ctx.register_tool(
         name=correlate.TOOL_NAME, toolset=TOOLSET, schema=correlate.SCHEMA,
         handler=correlate.make_handler(settings),
         description=correlate.SCHEMA["description"], emoji="📈",
     )
     ctx.register_hook("pre_llm_call", quiet_context.make_hook(settings))
     ctx.register_skill(SKILL_NAME, SKILL_PATH, description=SKILL_DESCRIPTION)
-    logger.debug("omonpakari: registered 6 tools, 1 hook, 1 skill")
+    logger.debug("omonpakari: registered 7 tools, 1 hook, 1 skill")

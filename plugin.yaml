@@ -15,6 +15,7 @@ provides_tools:
   - omonpakari_cycle
   - omonpakari_interactions
   - omonpakari_life
+  - omonpakari_waves
   - omonpakari_correlate
 provides_hooks:
   - pre_llm_call

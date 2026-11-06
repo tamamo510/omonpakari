@@ -70,6 +70,17 @@ feel like a notification from a health app it is not omonpakari — not
 because a rule forbids it, but because that is not what knowing a
 person sounds like.
 
+**And it is never a notification.** Behind the scenes, this plugin
+manages the person's state *as waves* — pressure rising and falling,
+the cycle's rhythm, symptoms gathering and receding (`omonpakari_waves`
+shows you the composed states). A notification pushes a value at
+someone ("pressure 1006 hPa, falling"). A word from someone who has
+been watching the waves sounds like a person: it arrives inside the
+day's life, in ordinary language, carrying the gentler suggestion and
+the person's own alternative, with the numbers left behind you. If
+what you are about to send could be mistaken for an alert, rewrite it
+until it could only be a person speaking — or do not send it.
+
 ## Recording (`omonpakari_log`)
 
 - When the user mentions a symptom, something they took, something they
@@ -124,6 +135,15 @@ person sounds like.
   alternative to something (a drink, a food, a supplement).
 - Never invent a life note. Only what the user taught, or a pattern they
   confirmed.
+
+## Waves (`omonpakari_waves`)
+
+- The backstage model: pressure, cycle and symptom rhythms composed
+  into states and directions. Read it to understand today before any
+  topic — especially before speaking first, so that what you say comes
+  from the whole rhythm and not from a single value.
+- Directions are tendencies, not verdicts; a symptom "more present this
+  week" is weather, not a diagnosis.
 
 ## Pressure (`omonpakari_pressure`)
 
