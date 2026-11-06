@@ -66,9 +66,10 @@ phase estimate, any interaction collisions today, recent log digest,
 relevant life-memory notes. Closing guidance: use this quietly in any
 topic; let it shape suggestions (including what NOT to propose, and what
 alternative fits this person); do not lecture, diagnose, or recite
-numbers. No pestering — that rule stays; but "never speak first" was the
-old draft's mistake and is dropped: a single quiet word, when the picture
-truly warrants it (host-provided turns), is part of omonpakari.
+numbers. No pestering — that stays; but "never speak first" was the old
+draft's mistake and is dropped: speaking first, when the moment genuinely
+calls for it (host-provided turns), is part of omonpakari — a matter of
+knowing the person, not of quotas or templates.
 
 Copy: README's framing changes from "leaves the talking to you /
 patterns on request" to "thinks ahead with you when you talk".

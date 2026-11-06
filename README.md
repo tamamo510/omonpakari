@@ -49,10 +49,12 @@ enough, the check has to sit between knowing and speaking.
 
 - **No pestering, ever.** No reminders, no "did you take your medication?",
   no repeated nudges, nothing that hurries the person into acting. But
-  *not pestering* is not the same as *never speaking first*: a single
-  quiet word, offered once when the picture truly warrants it — a sharp
+  *not pestering* is not the same as *never speaking first*: a quiet
+  word first, when the moment genuinely calls for one — a sharp
   pressure fall ahead of a planned outing, a cycle window opening on a
-  heavy day — is part of what consideration means. The sending channel
+  heavy day — is part of what consideration means. There is no quota or
+  template for that; it is the judgment of someone who knows the
+  person, not a notification policy. The sending channel
   belongs to the host (Hermes); this plugin's part is to always have the
   honest picture ready, in and out of conversation.
 - **The hook places a picture, not a gag.** `pre_llm_call` runs before a
