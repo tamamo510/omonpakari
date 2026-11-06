@@ -2,7 +2,7 @@ name: omonpakari
 version: 0.2.0
 manifest_version: 2
 api_version: 1
-description: "Considerate health context for Hermes: pressure, a typed journal, menstrual-cycle windows, sourced absorption-interaction checks and the person's own life notes, placed quietly before each reply by a pre_llm_call hook. It never messages the user on its own."
+description: "Considerate health context for Hermes: pressure, a typed journal, menstrual-cycle windows, sourced absorption-interaction checks and the person's own life notes, placed quietly before each reply by a pre_llm_call hook. No reminders, no pestering; a quiet word first, when the picture truly warrants it, is part of the design."
 author: tamamo510
 license: MIT
 homepage: https://github.com/tamamo510/omonpakari

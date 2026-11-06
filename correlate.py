@@ -17,7 +17,7 @@ import logging
 import math
 from typing import Any, Callable, Optional
 
-from . import storage
+from . import cycle, storage
 from .journal import KINDS, MAX_LABEL
 from .pressure import MAX_GAP_H
 from .settings import Settings
@@ -201,6 +201,35 @@ def run(settings: Settings, args: dict) -> dict:
         "settings": settings_used,
         "note": "Counts only. Small samples are noisy, and pressure is one factor among many.",
     }
+    # 生理の時期ごとの数も添える（巡りが2回以上見えている時だけ）。
+    try:
+        with storage.connect() as conn:
+            marks = cycle.load_marks(conn)
+    except Exception:
+        marks = []
+    summary = cycle.summarize(marks, now) if marks else {}
+    if summary.get("cycles_observed", 0) >= 2:
+        phase_counts: dict[str, int] = {}
+        for at_utc, _key, _text, _tz in events:
+            phase = cycle.phase_at(marks, int(at_utc))
+            if phase:
+                phase_counts[phase] = phase_counts.get(phase, 0) + 1
+        day_counts: dict[str, int] = {}
+        total_days = 0
+        day = start
+        while day <= now:
+            phase = cycle.phase_at(marks, day + 12 * 3600)
+            if phase:
+                day_counts[phase] = day_counts.get(phase, 0) + 1
+                total_days += 1
+            day += 86400
+        if phase_counts and total_days:
+            total_events = sum(phase_counts.values())
+            out["by_phase"] = {
+                phase: {"entries": count,
+                        "share_of_entries": _share(count, total_events),
+                        "share_of_days": _share(day_counts.get(phase, 0), total_days)}
+                for phase, count in sorted(phase_counts.items(), key=lambda kv: -kv[1])}
     if kind == "any" or not (label and label.strip()):
         groups: dict[str, dict] = {}
         for at_utc, key, text, _tz in events:
