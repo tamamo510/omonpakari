@@ -15,7 +15,8 @@ import json
 import logging
 from typing import Any, Callable, Optional
 
-from . import part_cycle, part_iron, part_pressure, part_sleep, part_symptoms, states, storage
+from . import (part_cycle, part_iron, part_pressure, part_sleep, part_symptoms,
+               patterns, states, storage)
 from .settings import Settings
 
 logger = logging.getLogger(__name__)
@@ -62,14 +63,21 @@ def compose(settings: Settings, now: Optional[int] = None,
                              part.NAME, type(exc).__name__)
                 waves[part.NAME] = None
         summary = None
+        long_patterns: list = []
         if only is None:
             try:
                 summary = states.compute(settings, conn, now)
             except Exception as exc:
                 logger.debug("omonpakari: states failed (%s)", type(exc).__name__)
+            try:
+                long_patterns = patterns.compose(conn, now)
+            except Exception as exc:
+                logger.debug("omonpakari: patterns failed (%s)", type(exc).__name__)
     result: dict[str, Any] = {"ok": True, "waves": waves}
     if summary is not None:
         result["states"] = summary
+    if long_patterns:
+        result["patterns"] = long_patterns
     return {**result,
             "note": "Wave states for understanding today. If you speak, speak in ordinary "
                     "words fitted to the person's day - never as a notification or a readout."}
