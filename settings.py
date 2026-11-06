@@ -116,6 +116,13 @@ class Settings:
             logger.debug("omonpakari: could not save location (%s)", type(exc).__name__)
             return False
 
+    def interaction_window_h(self) -> float:
+        """吸収の照らしで「近い」と見る間合い（時間）。使う人が設定で変えられる。"""
+        value = _as_float(self.get("interaction_window_h", 2.0))
+        if value is None:
+            return 2.0
+        return max(0.5, min(12.0, value))
+
     def quiet_context(self) -> bool:
         return self._bool("quiet_context", True)
 

@@ -18,7 +18,7 @@ from .settings import Settings
 logger = logging.getLogger(__name__)
 
 TOOL_NAME = "omonpakari_log"
-KINDS = ("symptom", "medication", "note")
+KINDS = ("symptom", "medication", "supplement", "food", "note")
 MAX_LABEL = 80
 MAX_NOTE = 280
 MAX_DOSE = 40
@@ -29,8 +29,10 @@ PRESSURE_MATCH_S = 90 * 60   # 前後90分以内の気圧を添える
 SCHEMA = {
     "name": TOOL_NAME,
     "description": (
-        "The user's own health journal. action=add records a symptom, a medication or supplement, or a "
-        "short note, in the user's own words, only when the user mentions it. action=list reads entries "
+        "The user's own health journal. action=add records a symptom, a medication, a supplement, "
+        "food or drink, or a short note, in the user's own words, only when the user mentions it. "
+        "Keep the kinds separate: supplements and food are not medications, because the interactions "
+        "tool reads them by kind and time. action=list reads entries "
         "back (with counts against any limit the user set). action=delete removes one entry, "
         "action=set_limit stores a limit the user chose for a medication (omit max_count to clear it), "
         "action=purge erases everything (requires confirm=true). No reminders, no advice."
@@ -292,7 +294,7 @@ def _purge(conn, args: dict) -> dict:
         return _error("confirm_required", hint="Only when the user clearly asked to erase everything.")
     counts = {}
     with conn:
-        for table in ("journal", "med_limits", "pressure_samples"):
+        for table in ("journal", "med_limits", "pressure_samples", "cycle_marks", "life_notes"):
             counts[table] = conn.execute(f"DELETE FROM {table}").rowcount
     return {"ok": True, "erased": counts}
 
