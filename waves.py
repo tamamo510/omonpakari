@@ -15,7 +15,7 @@ import json
 import logging
 from typing import Any, Callable, Optional
 
-from . import part_cycle, part_iron, part_pressure, part_sleep, part_symptoms, storage
+from . import part_cycle, part_iron, part_pressure, part_sleep, part_symptoms, states, storage
 from .settings import Settings
 
 logger = logging.getLogger(__name__)
@@ -61,7 +61,16 @@ def compose(settings: Settings, now: Optional[int] = None,
                 logger.debug("omonpakari: wave part %s failed (%s)",
                              part.NAME, type(exc).__name__)
                 waves[part.NAME] = None
-    return {"ok": True, "waves": waves,
+        summary = None
+        if only is None:
+            try:
+                summary = states.compute(settings, conn, now)
+            except Exception as exc:
+                logger.debug("omonpakari: states failed (%s)", type(exc).__name__)
+    result: dict[str, Any] = {"ok": True, "waves": waves}
+    if summary is not None:
+        result["states"] = summary
+    return {**result,
             "note": "Wave states for understanding today. If you speak, speak in ordinary "
                     "words fitted to the person's day - never as a notification or a readout."}
 
