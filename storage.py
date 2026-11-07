@@ -1,6 +1,6 @@
 """記録の置き場と時刻の扱い。
 
-記録は上流の plugin_db（<hermes home>/plugin-data/omonpakari/data.db）に置く。
+記録は本家の plugin_db（<hermes home>/plugin-data/omonpakari/data.db）に置く。
 プラグインの家の中には一文字も書かない（update と remove で消えるため）。
 
 時刻は UTC の epoch 秒（整数）と、その時の時差の分（tz_min）の2つで持つ。
@@ -217,7 +217,7 @@ def place_key(lat: float, lon: float) -> str:
 # ---------------------------------------------------------------------------
 
 def _open() -> sqlite3.Connection:
-    # 上流の決まりの置き場。関数の中で取り込むのは、Hermes の外の試験で差し替えるため。
+    # 本家の決まりの置き場。関数の中で取り込むのは、Hermes の外の試験で差し替えるため。
     from plugins.plugin_storage import plugin_db
 
     conn = plugin_db(PLUGIN_NAME)

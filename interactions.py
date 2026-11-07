@@ -1,4 +1,4 @@
-"""吸収の照らしの道具 omonpakari_interactions。
+"""吸収の確かめの道具 omonpakari_interactions。
 
 出典のある一般的な相互作用の表を持ち、記録の時刻を突き合わせて、
 「鉄の記録の近くに、吸収を妨げる物の記録がある」ことを事実として返す。
@@ -211,8 +211,8 @@ def scan(conn, now: int, days: int, window_h: float) -> list[dict]:
                 gap = b["at_utc"] - a["at_utc"]
                 if abs(gap) <= window_s:
                     out.append(_item("caution", name, fact, source, a, b, gap))
-    # 表に無い組み合わせも、無言で通さない。近くで摂られた記録の組は
-    # 「未照合」として返す。表に無いことは、安全の証明ではない。
+    # 未収載の組み合わせも、無言で通さない。近くで摂られた記録の組は
+    # 「未収載」として返す。未収載であることは、安全の証明ではない。
     covered = set()
     for item in out:
         labels = tuple(sorted(storage.label_key(e["label"]) for e in item["entries"]))

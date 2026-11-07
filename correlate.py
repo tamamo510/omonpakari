@@ -1,13 +1,13 @@
 """気圧との相関の道具 omonpakari_correlate。
 
 溜めた気圧の点（実測を先に、無ければその時刻の予報）から1時間ごとの線を組み、
-各時間に「低い」「下がっている」の札を付ける。
+各時間に「低い」「下がっている」の印を付ける。
 
-- 母の数：線が覆えた全部の時間のうち、それぞれの札が付いた時間の割合。
-- 出来事の割合：記録のうち、その札の時間に入った割合。
+- 母の数：時系列が覆えた全部の時間のうち、それぞれの印が付いた時間の割合。
+- 出来事の割合：記録のうち、その印の時間に入った割合。
 - 二つの比（lift）と、出来事の前の変化の平均と、全時間の変化の平均。
 
-元の数をそのまま返す。医の見立ての文は付けない。数が足りない時はそう札を返す。
+元の数をそのまま返す。医の見立ての文は付けない。数が足りない時はその旨の印を返す。
 """
 
 from __future__ import annotations
@@ -28,7 +28,7 @@ TOOL_NAME = "omonpakari_correlate"
 MIN_EVENTS = 5
 MIN_EVENT_DAYS = 3        # 一度の重い日に固まった記録だけで比を言わない
 MIN_HOURS = 72
-SMALL_SAMPLE_DAYS = 10    # これより少ない日数の比は、早い見えとして札を付ける
+SMALL_SAMPLE_DAYS = 10    # これより少ない日数の比は、早い見えとして印を付ける
 MIN_DROP_HPA = 0.5
 MAX_DROP_HPA = 50.0
 MAX_LABELS = 8
@@ -88,7 +88,7 @@ def _mean(values: list[float]) -> Optional[float]:
 
 def _tally(series, times: list[int], low_hpa: float, window_s: int, drop: float,
            tz_mins: Optional[list[int]] = None) -> dict:
-    """時刻の並びに札を付けて数える。tz_mins を渡せば、気圧の見えた記録の地の日付も数える。"""
+    """時刻の並びに印を付けて数える。tz_mins を渡せば、気圧の見えた記録の地の日付も数える。"""
     out = {"with_pressure": 0, "in_low": 0, "change_known": 0, "in_falling": 0, "_deltas": [],
            "_days": set()}
     for i, t in enumerate(times):

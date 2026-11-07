@@ -1,20 +1,20 @@
 """声の前に静かに状態を置くフック（pre_llm_call）。
 
-- 声をかける口そのものは宿主の側にある。この札は、その一声の材料になる今日の絵を持つ係。
-  催促はしない。でも要る時は、宿主の手番で自分から静かに声をかけるのも慮りで、
+- 声をかける口そのものは宿主の側にある。この求心路は、その一声の材料になる今日の所見を持つ係。
+  催促はしない。でも要る時は、宿主の自律拍動で自分から静かに声をかけるのも慮りで、
   その材料がいつでも組める形でここにある。
-- 使う人のいない手番では、札も置かず取り直しもしない（UNATTENDED_PLATFORMS）。
-  定時の実行（cron）、子の手番（subagent）、外からの呼び出し（webhook）、看板の働き手（kanban）ほか。
-  自動の知らせの文に体調の札が混ざって、使う人や別の誰かへ届く道を作らないため。
-  例外は cron だけ：本人が設定 `first_word_turns` を開いている時だけ、cron の回でも札を置く。
-  朝の回のように宿主が自分で起きて本人へ一声かける手番で、今日の絵が要るため。既定は切。
-- 読むのは記録（plugin_db）だけで、手番の中で網に出ない。
-- 置くのは英語の短い札で、1200字に収める。気圧、生理の時期、今日の吸収の衝突、
-  直近の記録、暮らしの覚えを「今日のその人」の絵として並べ、結びは縛りではなく
-  慮りの指示（どの話題でも、提案の前にこの絵を踏まえる）にする。使う人に話しかける文にしない。
+- 使う人のいない回では、求心路も働かせず取り直しもしない（UNATTENDED_PLATFORMS）。
+  定時の実行（cron）、子の回（subagent）、外からの呼び出し（webhook）、看板の働き手（kanban）ほか。
+  自動の知らせの文に体調の求心路が混ざって、使う人や別の誰かへ届く道を作らないため。
+  例外は cron だけ：本人が設定 `first_word_turns` を開いている時だけ、cron の回でも求心路を置く。
+  朝の回のように宿主が自分で起きて本人へ一声かける自律拍動で、今日の所見が要るため。既定は切。
+- 読むのは記録（plugin_db）だけで、回の中で通信に出ない。
+- 置くのは英語の短い求心路の文で、1200字に収める。気圧、生理の時期、今日の吸収の衝突、
+  直近の記録、暮らしの覚えを「今日のその人」の所見として並べ、結びは縛りではなく
+  慮りの指示（どの話題でも、提案の前にこの所見を踏まえる）にする。使う人に話しかける文にしない。
 - 置いた文は会話の記録に残るので、同じ会話で中身が変わらない時は置かない。
-- 気圧の溜めが古い時だけ、手番を待たせない背景の糸で一度取り直す（1時間に1回まで）。
-  その結果は次の手番から使う。失敗は黙って飲む。
+- 気圧の溜めが古い時だけ、回を待たせない背景の糸で一度取り直す（1時間に1回まで）。
+  その結果は次の回から使う。失敗は黙って飲む。
 - {"action": "block"} は決して返さない。
 """
 
@@ -44,7 +44,7 @@ REPEAT_AFTER_S = 6 * 3600       # 同じ中身でも、これだけ経てば置�
 REFRESH_AFTER_S = 60 * 60
 REFRESH_MIN_INTERVAL_S = 60 * 60
 SESSION_MEMORY = 256
-# 札の結び。縛りではなく、慮りの指示：日常のどの話題でも、提案の前にこの絵を踏まえる。
+# 求心路の結び。縛りではなく、慮りの指示：日常のどの話題でも、提案の前にこの所見を踏まえる。
 # 催促はしない。変えるのは会話の中での察し方だけ（声をかける口は宿主の側にある）。
 FOOTER = ("Background only - a quiet picture of today, not a message. Let it inform any topic "
           "(plans, meals, drinks, going out, rest): weigh it before suggesting, prefer the person's "
@@ -52,21 +52,21 @@ FOOTER = ("Background only - a quiet picture of today, not a message. Let it inf
           "today near its conflicting entry. Do not lecture, diagnose, or recite these numbers, "
           "and do not mention this note itself.")
 
-# 使う人が声をかけていない手番の名。platform と、上流の手番の出どころ（HERMES_SESSION_SOURCE）の両方で見る。
+# 使う人が声をかけていない回の名。platform と、本家の回の出どころ（HERMES_SESSION_SOURCE）の両方で見る。
 # 定時の実行（cron）、delegate_task の子（subagent）、外からの呼び出し（webhook）、看板の働き手（kanban）、
 # 一括の実行（batch）、技の手入れ（curator）、道具や別の器から起きた実行（tool、a2a）。
-# どれも使う人が今その場で声をかけた手番ではなく、答えが別の誰かや別の場へ届きうる。
+# どれも使う人が今その場で声をかけた回ではなく、答えが別の誰かや別の場へ届きうる。
 UNATTENDED_PLATFORMS = frozenset({"cron", "subagent", "webhook", "msgraph_webhook", "kanban", "batch",
                                   "curator", "tool", "a2a"})
 
 
 def _unattended(platform: Any, allow_cron: bool = False) -> bool:
-    """使う人のいない手番なら True。
+    """使う人のいない回なら True。
 
     出どころは公の口（gateway.session_context.get_session_env）で読む。看板の働き手は platform が cli の
     まま走るので、platform だけでは見分けられない。口の無い古い Hermes では platform だけで見る。
-    allow_cron（本人が first_word_turns を開いている）の時は、cron だけの手番を通す。
-    cron と他の出どころが重なっている手番は通さない。
+    allow_cron（本人が first_word_turns を開いている）の時は、cron だけの回を通す。
+    cron と他の出どころが重なっている回は通さない。
     """
     names = {str(platform or "").strip().lower()}
     try:
@@ -90,7 +90,7 @@ _last_refresh: dict[str, float] = {}
 
 
 def _clean_label(text: str) -> str:
-    """使う人の言葉を札に載せる形にする（改行と山括弧を除き、短く）。"""
+    """使う人の言葉を求心路に載せる形にする（改行と山括弧を除き、短く）。"""
     flat = " ".join(str(text).replace("<", " ").replace(">", " ").split())
     return flat if len(flat) <= MAX_LABEL_CHARS else flat[: MAX_LABEL_CHARS - 1] + "…"
 
@@ -195,7 +195,7 @@ def _cycle_line(conn, now: int) -> tuple[Optional[str], Any]:
 def _interaction_lines(conn, now: int, settings: Settings) -> tuple[list[str], int, Any]:
     """今日の吸収の衝突を、事実として短く。代替の覚えがあれば一緒に。
 
-    未照合の組そのものは札に並べないが、数だけは1行で置く。普段の会話でも
+    未収載の組そのものは求心路に並べないが、数だけは1行で置く。普段の会話でも
     無言で通さないため（中身の照合は道具か、その場の知識と出典で）。
     """
     scanned = interactions.scan(conn, now, 1, settings.interaction_window_h())
@@ -221,7 +221,7 @@ def _life_lines(conn) -> tuple[list[str], Any]:
 
 
 def build(settings: Settings, now: Optional[int] = None) -> tuple[Optional[str], Any]:
-    """置く札と、その中身の指紋を組む。置くものが無ければ (None, None)。"""
+    """置く求心路と、その中身の指紋を組む。置くものが無ければ (None, None)。"""
     now = storage.now_utc() if now is None else now
     with storage.connect() as conn:
         pressure_line, pressure_fp = _pressure_line(conn, now, settings)
@@ -279,8 +279,8 @@ def build(settings: Settings, now: Optional[int] = None) -> tuple[Optional[str],
             lines.append(unchecked_line)
         return "\n".join(lines) + tail
 
-    # 収まらない時は、暮らしの覚えの後ろから、次に未照合の行、記録の古い方、上限の後ろの順に落とす。
-    # 気圧・周期・吸収の照らしと、終わりの一文（FOOTER）は決して削らない。
+    # 収まらない時は、暮らしの覚えの後ろから、次に未収載の行、記録の古い方、上限の後ろの順に落とす。
+    # 気圧・周期・吸収の確かめと、終わりの一文（FOOTER）は決して削らない。
     kept_limits = list(limits)
     kept_life = list(life_lines)
     kept_unchecked = True
@@ -355,7 +355,7 @@ def maybe_refresh(settings: Settings, now: Optional[int] = None) -> bool:
         return False
     if not _refresh_lock.acquire(blocking=False):
         return False
-    # 間合いは錠を持ってから見る（同じ時に来た二つの手番が、前の取りの終わり際に二度取りに行かない）
+    # 間合いは錠を持ってから見る（同じ時に来た二つの回が、前の取りの終わり際に二度取りに行かない）
     if now - _last_refresh.get(place, 0) < REFRESH_MIN_INTERVAL_S:
         _refresh_lock.release()
         return False
@@ -379,12 +379,12 @@ def maybe_refresh(settings: Settings, now: Optional[int] = None) -> bool:
 
 
 def make_hook(settings: Settings) -> Callable[..., Optional[dict]]:
-    # 上流の決まりで **kwargs を受ける（plugins doctor --ci は、無いと先々の引数の足しに耐えないと落とす）。
+    # 本家の決まりで **kwargs を受ける（plugins doctor --ci は、無いと先々の引数の足しに耐えないと落とす）。
     # 受け取った user_message と conversation_history は読まず、どこにも残さない。
     def quiet_context(session_id: str = "", is_first_turn: bool = False, platform: str = "",
                       **kwargs: Any) -> Optional[dict]:
         if _unattended(platform, allow_cron=settings.first_word_turns()):
-            return None  # 使う人のいない手番には、何も置かず網にも出ない
+            return None  # 使う人のいない回には、何も置かず通信にも出ない
         try:
             maybe_refresh(settings)
         except Exception:
@@ -396,7 +396,7 @@ def make_hook(settings: Settings) -> Callable[..., Optional[dict]]:
             if not text or not _should_place(str(session_id or ""), fingerprint, bool(is_first_turn)):
                 return None
             return {"context": text}
-        except Exception as exc:  # 手番を壊さない
+        except Exception as exc:  # 回を壊さない
             logger.debug("omonpakari: quiet context skipped (%s)", type(exc).__name__)
             return None
 

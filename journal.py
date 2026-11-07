@@ -2,7 +2,7 @@
 
 症状、薬やサプリ、ひと言の覚えを、使う人自身の言葉（label）で残す。
 決まった症状の名も、決め打ちの薬の名も持たない。言葉の全文は溜めない。
-書く時は網に出ず、溜めてある気圧のうち時刻のいちばん近い値を添える。
+書く時は通信に出ず、溜めてある気圧のうち時刻のいちばん近い値を添える。
 薬の上限は、使う人が決めた時だけ数として添える。警告の文は作らない。
 """
 
@@ -126,7 +126,7 @@ _ENTRY_COLUMNS = "id, kind, label, severity, dose, note, at_utc, tz_min, pressur
 
 
 def nearest_pressure(conn, at_utc: int) -> Optional[float]:
-    """前後90分以内でいちばん近い気圧（実測を先に、無ければ予報）。網には出ない。"""
+    """前後90分以内でいちばん近い気圧（実測を先に、無ければ予報）。通信には出ない。"""
     for kinds in (("observed",), ("observed", "forecast")):
         marks = ",".join("?" for _ in kinds)
         row = conn.execute(
