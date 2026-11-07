@@ -1,4 +1,4 @@
-"""組み直した札の試験。今日の絵（周期・吸収・暮らし）が入り、旧い縛りの一文は無い。"""
+"""組み直した求心路の試験。今日の所見（周期・吸収・暮らし）が入り、旧い縛りの一文は無い。"""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ def _seed(settings):
     return quiet_context.build(settings)
 
 
-def test_札に今日の絵が入る(settings):
+def test_求心路に今日の所見が入る(settings):
     text, _fp = _seed(settings)
     assert text is not None
     assert "cycle:" in text

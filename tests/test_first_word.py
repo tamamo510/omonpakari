@@ -1,4 +1,4 @@
-"""first_word_turns（宿主の定時の回でも札を置く設定）と、未照合の行の試験。"""
+"""first_word_turns（宿主の定時の回でも求心路を置く設定）と、未収載の行の試験。"""
 
 from __future__ import annotations
 
@@ -18,12 +18,12 @@ def _add(kind: str, label: str, at: str = "2027-01-15T06:00+00:00"):
     assert result["ok"], result
 
 
-def test_既定ではcronの回に札を置かない(settings):
+def test_既定ではcronの回に求心路を置かない(settings):
     _add("note", "寝不足")
     assert _hook(settings, platform="cron") is None
 
 
-def test_開いている時だけcronの回にも札を置く(settings, ctx):
+def test_開いている時だけcronの回にも求心路を置く(settings, ctx):
     _add("note", "寝不足")
     ctx.config["first_word_turns"] = True
     placed = _hook(settings, platform="cron")
@@ -36,7 +36,7 @@ def test_cronでも他の出どころが重なれば置かない(settings, ctx):
     assert _hook(settings, platform="subagent") is None
 
 
-def test_未照合の組は数だけ札に載る(settings):
+def test_未収載の組は数だけ求心路に載る(settings):
     _add("supplement", "iron supplement", "2027-01-15T06:00+00:00")
     _add("food", "rice", "2027-01-15T06:15+00:00")
     placed = _hook(settings, platform="telegram")

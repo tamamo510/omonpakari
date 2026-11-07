@@ -1,4 +1,4 @@
-"""記録の道具の試験。網には出ない。"""
+"""記録の道具の試験。通信には出ない。"""
 
 from __future__ import annotations
 
@@ -90,7 +90,7 @@ def test_気圧を溜めから添える(hermes, settings):
     assert near["entry"]["pressure_hpa"] == 1004.0
     far = _add(settings, kind="symptom", label="headache", at=storage.fmt_at(now - 6 * 3600, 0))
     assert "pressure_hpa" not in far["entry"]
-    assert hermes.http.calls == []  # 書く時に網へは出ない
+    assert hermes.http.calls == []  # 書く時に通信へは出ない
 
 
 @pytest.mark.parametrize("field, value, reason", [

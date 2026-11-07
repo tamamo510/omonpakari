@@ -1,4 +1,4 @@
-"""吸収の照らしの試験。鉄の近くにある物を事実として拾い、遠い物は拾わない。"""
+"""吸収の確かめの試験。鉄の近くにある物を事実として拾い、遠い物は拾わない。"""
 
 from __future__ import annotations
 
@@ -67,7 +67,7 @@ def test_痛み止めとお酒の組み合わせも拾う():
     assert hit["source"]
 
 
-def test_表に無い組み合わせは未照合として返る():
+def test_未収載の組み合わせは未収載として返る():
     _add("supplement", "iron supplement", "2027-01-15T07:00+00:00")
     _add("food", "rice", "2027-01-15T07:15+00:00")
     result = interactions.run(_settings(), {"action": "check", "days": 1})

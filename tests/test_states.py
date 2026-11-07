@@ -32,7 +32,7 @@ def test_記録が無ければ信号は無い(settings):
     assert result["states"] == {}
 
 
-def test_札に状態の行が入る(settings):
+def test_求心路に状態の行が入る(settings):
     _add("note", "寝不足", "15")
     _add("note", "寝不足", "14")
     _add("note", "寝不足", "13")

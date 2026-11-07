@@ -1,4 +1,4 @@
-"""気圧の道具の試験。網は使わず、OpenWeather の返しは偽物で置き換える。"""
+"""気圧の道具の試験。通信は使わず、OpenWeather の返しは偽物で置き換える。"""
 
 from __future__ import annotations
 
@@ -27,14 +27,14 @@ def _run(settings, **args):
 
 # --- 鍵と座標 ---------------------------------------------------------------
 
-def test_鍵が無い時は理由の札だけを返して網に出ない(hermes, settings):
+def test_鍵が無い時は理由の印だけを返して通信に出ない(hermes, settings):
     out = _run(settings, lat=0.0, lon=0.0)
     assert out["ok"] is False and out["reason"] == "missing_key"
     assert "OPENWEATHER_API_KEY" in out["hint"]
     assert hermes.http.calls == []
 
 
-def test_座標が無い時は理由の札を返す(hermes, settings):
+def test_座標が無い時は理由の印を返す(hermes, settings):
     hermes.secrets["OPENWEATHER_API_KEY"] = FAKE_KEY
     out = _run(settings)
     assert out == {"ok": False, "reason": "location_not_set", "hint": pressure.REASON_HINTS["location_not_set"]}
@@ -42,7 +42,7 @@ def test_座標が無い時は理由の札を返す(hermes, settings):
 
 
 @pytest.mark.parametrize("lat, lon", [(91.0, 0.0), (0.0, 181.0), ("north", 0.0), (True, 0.0)])
-def test_座標の範囲の外は誤りの札(hermes, settings, lat, lon):
+def test_座標の範囲の外は誤りの印(hermes, settings, lat, lon):
     hermes.secrets["OPENWEATHER_API_KEY"] = FAKE_KEY
     assert _run(settings, lat=lat, lon=lon)["reason"] == "invalid_location"
 
@@ -164,14 +164,14 @@ def test_境目は設定で変えられる(hermes, ctx, settings):
 
 @pytest.mark.parametrize("status, reason", [(401, "auth_failed"), (429, "rate_limited"),
                                             (500, "http_500"), (404, "http_404")])
-def test_応答の番号ごとの札(hermes, settings, status, reason):
+def test_応答の番号ごとの印(hermes, settings, status, reason):
     hermes.secrets["OPENWEATHER_API_KEY"] = FAKE_KEY
     _routes(hermes, hermes.clock.now, current_status=status)
     out = _run(settings, lat=0.0, lon=0.0)
     assert out["ok"] is False and out["reason"] == reason
 
 
-def test_網の失敗の戻りと帳に鍵と座標が出ない(hermes, settings, caplog):
+def test_通信の失敗の戻りと帳に鍵と座標が出ない(hermes, settings, caplog):
     hermes.secrets["OPENWEATHER_API_KEY"] = FAKE_KEY
     leaky = (f"HTTPSConnectionPool: Max retries exceeded with url: /data/2.5/weather?lat=12.3456&lon=65.4321"
              f"&appid={FAKE_KEY}&units=metric")
@@ -184,14 +184,14 @@ def test_網の失敗の戻りと帳に鍵と座標が出ない(hermes, settings
         assert secret not in caplog.text
 
 
-def test_JSONの崩れは札にする(hermes, settings):
+def test_JSONの崩れは印にする(hermes, settings):
     hermes.secrets["OPENWEATHER_API_KEY"] = FAKE_KEY
     hermes.http.routes[pressure.CURRENT_URL] = (200, b"<html>not json")
     assert _run(settings, lat=0.0, lon=0.0)["reason"] == "bad_response"
 
 
 @pytest.mark.parametrize("body", [[1, 2, 3], {"main": {}}, {"dt": 1, "main": {"pressure": 5}}])
-def test_読めない応答は札にする(hermes, settings, body):
+def test_読めない応答は印にする(hermes, settings, body):
     hermes.secrets["OPENWEATHER_API_KEY"] = FAKE_KEY
     hermes.http.routes[pressure.CURRENT_URL] = (200, body)
     assert _run(settings, lat=0.0, lon=0.0)["reason"] == "bad_response"
