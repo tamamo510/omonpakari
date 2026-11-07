@@ -1,9 +1,13 @@
 """声の前に静かに状態を置くフック（pre_llm_call）。
 
-- 使う人が声をかけた手番の前にだけ働く。自分から声をかける口は持たない。
-  定時の実行（cron）、子の手番（subagent）、外からの呼び出し（webhook）、看板の働き手（kanban）ほか、
-  使う人のいない手番では、札も置かず取り直しもしない（UNATTENDED_PLATFORMS）。
+- 声をかける口そのものは宿主の側にある。この札は、その一声の材料になる今日の絵を持つ係。
+  催促はしない。でも要る時は、宿主の手番で自分から静かに声をかけるのも慮りで、
+  その材料がいつでも組める形でここにある。
+- 使う人のいない手番では、札も置かず取り直しもしない（UNATTENDED_PLATFORMS）。
+  定時の実行（cron）、子の手番（subagent）、外からの呼び出し（webhook）、看板の働き手（kanban）ほか。
   自動の知らせの文に体調の札が混ざって、使う人や別の誰かへ届く道を作らないため。
+  例外は cron だけ：本人が設定 `first_word_turns` を開いている時だけ、cron の回でも札を置く。
+  朝の回のように宿主が自分で起きて本人へ一声かける手番で、今日の絵が要るため。既定は切。
 - 読むのは記録（plugin_db）だけで、手番の中で網に出ない。
 - 置くのは英語の短い札で、1200字に収める。気圧、生理の時期、今日の吸収の衝突、
   直近の記録、暮らしの覚えを「今日のその人」の絵として並べ、結びは縛りではなく
@@ -56,11 +60,13 @@ UNATTENDED_PLATFORMS = frozenset({"cron", "subagent", "webhook", "msgraph_webhoo
                                   "curator", "tool", "a2a"})
 
 
-def _unattended(platform: Any) -> bool:
+def _unattended(platform: Any, allow_cron: bool = False) -> bool:
     """使う人のいない手番なら True。
 
     出どころは公の口（gateway.session_context.get_session_env）で読む。看板の働き手は platform が cli の
     まま走るので、platform だけでは見分けられない。口の無い古い Hermes では platform だけで見る。
+    allow_cron（本人が first_word_turns を開いている）の時は、cron だけの手番を通す。
+    cron と他の出どころが重なっている手番は通さない。
     """
     names = {str(platform or "").strip().lower()}
     try:
@@ -69,7 +75,10 @@ def _unattended(platform: Any) -> bool:
         names.add(str(get_session_env("HERMES_SESSION_SOURCE", "") or "").strip().lower())
     except Exception:
         pass
-    return bool(names & UNATTENDED_PLATFORMS)
+    hit = names & UNATTENDED_PLATFORMS
+    if allow_cron and hit == {"cron"}:
+        return False
+    return bool(hit)
 
 
 CLOCK: Callable[[], float] = time.monotonic  # 試験で差し替える
@@ -183,10 +192,15 @@ def _cycle_line(conn, now: int) -> tuple[Optional[str], Any]:
                                    window["earliest"] if window else None)
 
 
-def _interaction_lines(conn, now: int, settings: Settings) -> tuple[list[str], Any]:
-    """今日の吸収の衝突を、事実として短く。代替の覚えがあれば一緒に。"""
-    hits = [h for h in interactions.scan(conn, now, 1, settings.interaction_window_h())
-            if h["effect"] != "unlisted"]  # 未照合の組は札には載せない（道具で聞かれた時に返す）
+def _interaction_lines(conn, now: int, settings: Settings) -> tuple[list[str], int, Any]:
+    """今日の吸収の衝突を、事実として短く。代替の覚えがあれば一緒に。
+
+    未照合の組そのものは札に並べないが、数だけは1行で置く。普段の会話でも
+    無言で通さないため（中身の照合は道具か、その場の知識と出典で）。
+    """
+    scanned = interactions.scan(conn, now, 1, settings.interaction_window_h())
+    hits = [h for h in scanned if h["effect"] != "unlisted"]
+    unchecked = sum(1 for h in scanned if h["effect"] == "unlisted")
     lines = []
     for hit in hits:
         first, second = hit["entries"][0], hit["entries"][1]
@@ -196,7 +210,7 @@ def _interaction_lines(conn, now: int, settings: Settings) -> tuple[list[str], A
             text += f"; person's alternative: {_clean_label(alt['text'])}"
         lines.append(text)
     fingerprint = [(h["substance"], h["entries"][1]["at"], h["entries"][0]["at"]) for h in hits]
-    return lines, fingerprint
+    return lines, unchecked, fingerprint
 
 
 def _life_lines(conn) -> tuple[list[str], Any]:
@@ -213,7 +227,7 @@ def build(settings: Settings, now: Optional[int] = None) -> tuple[Optional[str],
         pressure_line, pressure_fp = _pressure_line(conn, now, settings)
         items, limits, journal_fp = _journal_lines(conn, now)
         cycle_line, cycle_fp = _cycle_line(conn, now)
-        clash_lines, clash_fp = _interaction_lines(conn, now, settings)
+        clash_lines, unchecked_count, clash_fp = _interaction_lines(conn, now, settings)
         life_lines, life_fp = _life_lines(conn)
         symptom_part = part_symptoms.state(settings, conn, now)
         symptom_waves = symptom_part["waves"] if symptom_part else []
@@ -231,13 +245,19 @@ def build(settings: Settings, now: Optional[int] = None) -> tuple[Optional[str],
         state_line = "states: " + "; ".join(
             f"{name} {s['signal']} ({s['basis']})"
             for name, s in list(state_map.items())[:5]) + "."
+    unchecked_line = None
+    if unchecked_count:
+        unchecked_line = (f"unchecked pairs today: {unchecked_count} "
+                          "(not in the reference table - verify from knowledge before suggesting combinations).")
     if (pressure_line is None and not items and not limits and cycle_line is None
-            and not clash_lines and not life_lines and wave_line is None and state_line is None):
+            and not clash_lines and not life_lines and wave_line is None and state_line is None
+            and unchecked_line is None):
         return None, None
 
     tail = "\n" + FOOTER + "\n</omonpakari>"
 
-    def compose(journal_items: list[str], limit_items: list[str], life_items: list[str]) -> str:
+    def compose(journal_items: list[str], limit_items: list[str], life_items: list[str],
+                with_unchecked: bool = True) -> str:
         lines = ["<omonpakari>"]
         if pressure_line:
             lines.append(pressure_line)
@@ -255,26 +275,32 @@ def build(settings: Settings, now: Optional[int] = None) -> tuple[Optional[str],
             lines.append("user-set limits: " + "; ".join(limit_items) + ".")
         if life_items:
             lines.append("life notes: " + "; ".join(life_items) + ".")
+        if unchecked_line and with_unchecked:
+            lines.append(unchecked_line)
         return "\n".join(lines) + tail
 
-    # 収まらない時は、暮らしの覚えの後ろから、次に記録の古い方、上限の後ろの順に落とす。
+    # 収まらない時は、暮らしの覚えの後ろから、次に未照合の行、記録の古い方、上限の後ろの順に落とす。
     # 気圧・周期・吸収の照らしと、終わりの一文（FOOTER）は決して削らない。
     kept_limits = list(limits)
     kept_life = list(life_lines)
-    text = compose(items, kept_limits, kept_life)
+    kept_unchecked = True
+    text = compose(items, kept_limits, kept_life, kept_unchecked)
     while len(text) > MAX_CHARS and kept_life:
         kept_life = kept_life[:-1]
-        text = compose(items, kept_limits, kept_life)
+        text = compose(items, kept_limits, kept_life, kept_unchecked)
+    while len(text) > MAX_CHARS and kept_unchecked and unchecked_line:
+        kept_unchecked = False
+        text = compose(items, kept_limits, kept_life, kept_unchecked)
     while len(text) > MAX_CHARS and items:
         items = items[:-1]
-        text = compose(items, kept_limits, kept_life)
+        text = compose(items, kept_limits, kept_life, kept_unchecked)
     while len(text) > MAX_CHARS and kept_limits:
         kept_limits = kept_limits[:-1]
-        text = compose(items, kept_limits, kept_life)
+        text = compose(items, kept_limits, kept_life, kept_unchecked)
     if len(text) > MAX_CHARS:
         body = text[: len(text) - len(tail)]
         text = body[: MAX_CHARS - len(tail) - 1] + "…" + tail
-    fingerprint = json.dumps([pressure_fp, journal_fp, cycle_fp, clash_fp, life_fp,
+    fingerprint = json.dumps([pressure_fp, journal_fp, cycle_fp, clash_fp, unchecked_count, life_fp,
                               [(w["label"], w["direction"], w["this_week"]) for w in symptom_waves],
                               sorted((k, v["signal"]) for k, v in state_map.items())],
                              default=str)
@@ -357,7 +383,7 @@ def make_hook(settings: Settings) -> Callable[..., Optional[dict]]:
     # 受け取った user_message と conversation_history は読まず、どこにも残さない。
     def quiet_context(session_id: str = "", is_first_turn: bool = False, platform: str = "",
                       **kwargs: Any) -> Optional[dict]:
-        if _unattended(platform):
+        if _unattended(platform, allow_cron=settings.first_word_turns()):
             return None  # 使う人のいない手番には、何も置かず網にも出ない
         try:
             maybe_refresh(settings)

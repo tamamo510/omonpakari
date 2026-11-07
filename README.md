@@ -6,6 +6,13 @@ Considerate health context for
 *Omonpakari* (慮り) is a Japanese word for considerate foresight: thinking
 ahead for someone, including what they have not said out loud.
 
+It is built, above all, for living alongside someone whose body moves in
+waves — a partner whose hormonal rhythm means some weeks are heavier
+than others. Care that ignores the body lands as friction; care that
+remembers — her cycle, her sleep, what she usually drinks in the
+morning — lands as care. omonpakari gives the agent that memory, so its
+kindness is informed instead of generic.
+
 ## What it does
 
 Most health trackers treat a person as a list of measurements to be checked
@@ -41,11 +48,12 @@ would.
   pressure, cycle phase, today's interaction flags, recent entries and life
   notes, so the agent can weigh them *before* suggesting anything.
 
-The founding incident: an agent once warmly proposed cocoa together with a
-morning iron supplement — cocoa blocks roughly 71% of that iron's
-absorption. The knowledge existed; nothing checked it at the moment of the
-suggestion. omonpakari exists so that moment is covered: knowing is not
-enough, the check has to sit between knowing and speaking.
+Why the check exists: suggest a warm cup of cocoa to someone who takes
+iron in the morning, and the cocoa quietly blocks roughly 71% of that
+iron's absorption. It is the kind of mistake any well-meaning agent can
+make in any home — the knowledge exists, but nothing checks it at the
+moment of the suggestion. omonpakari puts the check between knowing and
+speaking.
 
 ## Considerate by design
 

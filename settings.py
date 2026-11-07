@@ -126,5 +126,14 @@ class Settings:
     def quiet_context(self) -> bool:
         return self._bool("quiet_context", True)
 
+    def first_word_turns(self) -> bool:
+        """宿主が自分で起きる定時の回（cron）でも札を置くか。本人が開く設定。既定は切。
+
+        朝の回のように、宿主が決まった時刻に自分で起きて一声かける手番では、
+        今日の絵が載らないと慮りの一声にならない。ただし自動の知らせに体調の札が
+        混ざる道を作らないため、既定は切で、本人が自分で開いた時だけ cron を通す。
+        """
+        return self._bool("first_word_turns", False)
+
     def background_refresh(self) -> bool:
         return self._bool("background_refresh", True)

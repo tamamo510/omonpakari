@@ -15,7 +15,7 @@ import json
 import logging
 from typing import Any, Callable, Optional
 
-from . import (part_cycle, part_iron, part_pressure, part_sleep, part_symptoms,
+from . import (part_cycle, part_nutrition, part_pressure, part_sleep, part_symptoms,
                patterns, states, storage)
 from .settings import Settings
 
@@ -24,14 +24,15 @@ logger = logging.getLogger(__name__)
 TOOL_NAME = "omonpakari_waves"
 
 # 部品の並び。順番が、そのまま合成の順番。
-PARTS = (part_pressure, part_cycle, part_symptoms, part_sleep, part_iron)
+PARTS = (part_pressure, part_cycle, part_symptoms, part_sleep, part_nutrition)
 PART_NAMES = [p.NAME for p in PARTS]
 
 SCHEMA = {
     "name": TOOL_NAME,
     "description": (
         "The composed wave states behind the scenes, one part per rhythm: pressure, cycle, "
-        "symptoms, sleep (as the person has mentioned it), and iron. Each part returns its "
+        "symptoms, sleep (as the person has mentioned it), and nutrition (food, supplements "
+        "and iron as strands of one wave - never a single nutrient alone). Each part returns its "
         "state and direction, or nothing when it has no ground to stand on. Pass part to read "
         "a single rhythm. States and directions, not verdicts. Use these to understand today "
         "before any topic - and if you speak first, speak from the waves in ordinary words "

@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from . import interactions, part_cycle, part_iron, part_pressure, part_symptoms, storage
+from . import interactions, part_cycle, part_nutrition, part_pressure, part_symptoms, storage
 from .settings import Settings
 
 WEEK_S = 7 * 86400
@@ -90,7 +90,7 @@ def supplements_state(rows, now: int) -> Optional[dict]:
 
 
 def iron_state(settings: Settings, conn, now: int) -> Optional[dict]:
-    part = part_iron.state(settings, conn, now)
+    part = part_nutrition._iron_strand(settings, conn, now)
     if not part:
         return None
     collisions = part["absorption_collisions_this_week"]

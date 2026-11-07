@@ -1,9 +1,10 @@
 # Redesign notes (working document)
 
-Status 2026-11-06: implemented on this branch. Six tools (pressure, log,
-cycle, interactions, life, correlate), the hook now places a "quiet picture
-of today" with consideration guidance instead of the old restrictive line,
-and the test suite covers the new behaviour (177 tests passing locally).
+Status 2026-11-07: implemented on this branch. Seven tools (pressure, log,
+cycle, interactions, life, waves, correlate), the hook now places a "quiet
+picture of today" with consideration guidance instead of the old
+restrictive line, and the test suite covers the new behaviour (211 tests
+passing locally).
 Upstream check (2026-11-06): current NousResearch/hermes-agent still uses
 register(ctx), pre_llm_call and plugin-catalog YAML with a 40-hex SHA pin,
 so the submission shape is unchanged; the compat contract is additive
@@ -24,8 +25,9 @@ pressure fetching/caching, storage) stays.
    conversation (plans, meals, going out), factoring in what was NOT asked.
 2. No menstrual cycle at all. For irregular cycles a single predicted date is
    a lie; the design must return averages, spread, and a window (range).
-3. No absorption/interaction check. The founding incident (June 2026): iron
-   proposed together with cocoa, which inhibits iron absorption ~71%.
+3. No absorption/interaction check. For example, iron proposed together
+   with cocoa, which inhibits iron absorption ~71%: a common, well-meaning
+   suggestion that a pre-proposal check would have caught.
    "No medication advice" was over-extended and removed the pre-proposal
    check entirely. Checking sourced interaction facts against logged times
    is information, not advice.

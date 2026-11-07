@@ -36,8 +36,8 @@ conversation, the way someone who lives with them would.
    drink or supplement near another one the user takes — above all near
    iron — run `omonpakari_interactions` (`action: "check"`) or consult
    its table. Do not propose a flagged combination within the person's
-   spacing window. This check is the plugin's founding incident: iron
-   once proposed together with cocoa, which blocks its absorption. The
+   spacing window. For example, cocoa proposed together with a morning
+   iron supplement blocks roughly 71% of that iron's absorption. The
    table is not iron-only — like a liver, which does not get to refuse
    part of what reaches it, the check also covers pairings such as
    NSAIDs with alcohol or two NSAIDs together, and it is meant to grow.

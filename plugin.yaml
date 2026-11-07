@@ -69,6 +69,10 @@ config_schema:
     type: bool
     default: true
     description: "Place a short background note before each reply. Turn off to keep tools only."
+  first_word_turns:
+    type: bool
+    default: false
+    description: "Also place the note on the host's own scheduled turns (cron), so a first word of the day can be spoken from today's picture. Off by default: turn it on only if those scheduled turns speak to the person themselves, never to anyone else."
   background_refresh:
     type: bool
     default: true
