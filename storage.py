@@ -1,6 +1,6 @@
 """記録の置き場と時刻の扱い。
 
-記録は上流の plugin_db（<hermes home>/plugin-data/omonpakari/data.db）に置く。
+記録は本家の plugin_db（<hermes home>/plugin-data/omonpakari/data.db）に置く。
 プラグインの家の中には一文字も書かない（update と remove で消えるため）。
 
 時刻は UTC の epoch 秒（整数）と、その時の時差の分（tz_min）の2つで持つ。
@@ -27,7 +27,7 @@ _SCHEMA = (
     """
     CREATE TABLE IF NOT EXISTS journal (
         id INTEGER PRIMARY KEY,
-        kind TEXT NOT NULL CHECK (kind IN ('symptom', 'medication', 'note')),
+        kind TEXT NOT NULL CHECK (kind IN ('symptom', 'medication', 'supplement', 'food', 'note')),
         label TEXT NOT NULL,
         label_key TEXT NOT NULL,
         severity INTEGER CHECK (severity IS NULL OR severity BETWEEN 1 AND 5),
@@ -64,7 +64,62 @@ _SCHEMA = (
     )
     """,
     "CREATE INDEX IF NOT EXISTS pressure_at ON pressure_samples (at_utc)",
+    """
+    CREATE TABLE IF NOT EXISTS cycle_marks (
+        id INTEGER PRIMARY KEY,
+        mark TEXT NOT NULL CHECK (mark IN ('start', 'end')),
+        at_utc INTEGER NOT NULL,
+        tz_min INTEGER NOT NULL,
+        note TEXT,
+        created_utc INTEGER NOT NULL
+    )
+    """,
+    "CREATE INDEX IF NOT EXISTS cycle_marks_at ON cycle_marks (at_utc)",
+    """
+    CREATE TABLE IF NOT EXISTS life_notes (
+        id INTEGER PRIMARY KEY,
+        topic TEXT NOT NULL,
+        topic_key TEXT NOT NULL UNIQUE,
+        text TEXT NOT NULL,
+        relates TEXT,
+        relates_key TEXT,
+        created_utc INTEGER NOT NULL,
+        updated_utc INTEGER NOT NULL
+    )
+    """,
 )
+
+_JOURNAL_KINDS_SQL = "'symptom', 'medication', 'supplement', 'food', 'note'"
+
+
+def _migrate_journal_kinds(conn: sqlite3.Connection) -> None:
+    """旧い台（種類が3つ）の journal があれば、記録を保ったまま種類を広げた台へ移す。"""
+    row = conn.execute(
+        "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'journal'").fetchone()
+    if not row or not row[0] or "'supplement'" in row[0]:
+        return
+    with conn:
+        conn.execute(
+            f"""
+            CREATE TABLE journal_new (
+                id INTEGER PRIMARY KEY,
+                kind TEXT NOT NULL CHECK (kind IN ({_JOURNAL_KINDS_SQL})),
+                label TEXT NOT NULL,
+                label_key TEXT NOT NULL,
+                severity INTEGER CHECK (severity IS NULL OR severity BETWEEN 1 AND 5),
+                dose TEXT,
+                note TEXT,
+                at_utc INTEGER NOT NULL,
+                tz_min INTEGER NOT NULL,
+                pressure_hpa REAL,
+                created_utc INTEGER NOT NULL
+            )
+            """)
+        conn.execute("INSERT INTO journal_new SELECT * FROM journal")
+        conn.execute("DROP TABLE journal")
+        conn.execute("ALTER TABLE journal_new RENAME TO journal")
+        conn.execute("CREATE INDEX IF NOT EXISTS journal_at ON journal (at_utc)")
+        conn.execute("CREATE INDEX IF NOT EXISTS journal_label ON journal (label_key, at_utc)")
 
 
 # ---------------------------------------------------------------------------
@@ -162,10 +217,11 @@ def place_key(lat: float, lon: float) -> str:
 # ---------------------------------------------------------------------------
 
 def _open() -> sqlite3.Connection:
-    # 上流の決まりの置き場。関数の中で取り込むのは、Hermes の外の試験で差し替えるため。
+    # 本家の決まりの置き場。関数の中で取り込むのは、Hermes の外の試験で差し替えるため。
     from plugins.plugin_storage import plugin_db
 
     conn = plugin_db(PLUGIN_NAME)
+    _migrate_journal_kinds(conn)
     for statement in _SCHEMA:
         conn.execute(statement)
     conn.commit()

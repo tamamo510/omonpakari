@@ -52,7 +52,7 @@ def test_plugin_yamlの宣言と実際の登録がそろう():
     assert all(len(callbacks) == 1 for callbacks in ctx.hooks.values())
 
 
-def test_道具の形は上流の約束どおり():
+def test_道具の形は本家の約束どおり():
     ctx = FakeCtx()
     omonpakari.register(ctx)
     for name, tool in ctx.tools.items():
@@ -87,7 +87,7 @@ def test_添えのスキルの紙がある():
     assert "name: omonpakari" in head and "description:" in head
 
 
-def test_registerは設定も鍵も記録も読まず網に出ない(hermes):
+def test_registerは設定も鍵も記録も読まず通信に出ない(hermes):
     class Strict(FakeCtx):
         def get_config(self, key, default=None):
             raise AssertionError("register must not read config")
@@ -129,7 +129,7 @@ def test_自分から送る手が家のどこにも無い(path):
         if isinstance(node, (ast.Import, ast.ImportFrom)):
             modules = [a.name for a in node.names] if isinstance(node, ast.Import) else [node.module or ""]
             assert not any(m.split(".")[0] in FORBIDDEN_MODULES for m in modules), f"{path.name}: {modules}"
-        if isinstance(node, ast.Dict):  # フックが手番を止める形を返さない
+        if isinstance(node, ast.Dict):  # フックが回を止める形を返さない
             for key in node.keys:
                 if isinstance(key, ast.Constant) and key.value == "action":
                     values = [v for k, v in zip(node.keys, node.values, strict=True) if k is key]
@@ -146,7 +146,7 @@ def test_鍵を環境から直に読まない(path):
         if isinstance(node, ast.Name):
             assert node.id not in ("getenv", "environ"), path.name
         if isinstance(node, ast.Call) and getattr(node.func, "id", "") == "open":
-            raise AssertionError(f"{path.name}: 紙を直に開かない（.env も記録も上流の道から）")
+            raise AssertionError(f"{path.name}: 紙を直に開かない（.env も記録も本家の道から）")
 
 
 def test_家に鍵の値らしき並びが無い():

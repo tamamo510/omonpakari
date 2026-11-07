@@ -1,4 +1,4 @@
-"""相関の道具の試験。母の数を持つこと、足りない時は札を返すことを照らす。"""
+"""相関の道具の試験。母の数を持つこと、足りない時は印を返すことを検証する。"""
 
 from __future__ import annotations
 
@@ -32,7 +32,7 @@ def _pressure(now, low_spans=((15, 13), (8, 6)), days=20, step=3 * H, kind="obse
         storage.save_samples(conn, rows, now, "p1")
 
 
-def test_数が足りない時は札を返す(hermes, settings):
+def test_数が足りない時は印を返す(hermes, settings):
     now = hermes.clock.now
     _pressure(now)
     for k in range(3):
@@ -69,7 +69,7 @@ def test_変化の見えた記録が少ない時は下がりの割合を出さ�
     assert out["lift"]["low"] is not None
 
 
-def test_日数が少ない比には早い見えの札を付ける(hermes, settings):
+def test_日数が少ない比には早い見えの印を付ける(hermes, settings):
     now = hermes.clock.now
     _pressure(now)
     for day in (14, 13, 7, 3, 2):
@@ -87,7 +87,7 @@ def test_短い窓でも下がりの境に床を置く(hermes, settings):
     assert _correlate(settings, drop_hpa=500)["settings"]["drop_hpa"] == 50.0
 
 
-def test_気圧の溜めが無い時も札を返す(hermes, settings):
+def test_気圧の溜めが無い時も印を返す(hermes, settings):
     now = hermes.clock.now
     for k in range(6):
         _add(settings, "headache", now - k * D)
@@ -120,7 +120,7 @@ def test_母の数と出来事の割合と比を返す(hermes, settings):
     assert "diagnos" not in json.dumps(out).lower()  # 医の見立ての文は付けない
 
 
-def test_下がっている時間の札と比(hermes, settings):
+def test_下がっている時間の印と比(hermes, settings):
     now = hermes.clock.now
     _pressure(now, low_spans=((15, 13), (8, 6), (4, 3)))
     # 下がり始め（15日前、8日前、4日前）から数時間後に出来事を置く

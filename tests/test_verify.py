@@ -1,4 +1,4 @@
-"""疑って照らした所の試験。時の帯、使う人のいない手番、札の終わりの一文、昔すぎる時刻、同じ時の書き込み。"""
+"""疑って検証した所の試験。時の帯、使う人のいない回、求心路の終わりの一文、昔すぎる時刻、同じ時の書き込み。"""
 
 from __future__ import annotations
 
@@ -70,11 +70,11 @@ def test_昔すぎる時刻は刻まない(hermes, settings):
 
 
 # ---------------------------------------------------------------------------
-# 使う人のいない手番
+# 使う人のいない回
 # ---------------------------------------------------------------------------
 
 @pytest.mark.parametrize("platform", ["webhook", "kanban", "batch", "curator", "a2a", "Webhook "])
-def test_外から起きた手番でも札を置かず網に出ない(hermes, ctx, settings, platform):
+def test_外から起きた回でも求心路を置かず通信に出ない(hermes, ctx, settings, platform):
     hermes.secrets["OPENWEATHER_API_KEY"] = FAKE_KEY
     ctx.config.update(latitude=0.0, longitude=0.0)
     _add(settings, kind="symptom", label="headache")
@@ -83,7 +83,7 @@ def test_外から起きた手番でも札を置かず網に出ない(hermes, ct
 
 
 @pytest.mark.parametrize("source", ["kanban", "cron", "tool"])
-def test_出どころが使う人のいない手番なら_platformがcliでも黙る(hermes, ctx, settings, source):
+def test_出どころが使う人のいない回なら_platformがcliでも黙る(hermes, ctx, settings, source):
     _add(settings, kind="symptom", label="headache")
     hermes.zone.session_source = source
     assert _hook(settings, session_id="s", is_first_turn=True, platform="cli") is None
@@ -98,7 +98,7 @@ def test_使う人が声をかける場では置く(hermes, settings, platform):
 
 
 # ---------------------------------------------------------------------------
-# 札の長さ
+# 求心路の長さ
 # ---------------------------------------------------------------------------
 
 def test_上限がいくつあっても終わりの一文を削らない(hermes, settings):

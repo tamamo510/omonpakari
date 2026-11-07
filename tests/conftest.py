@@ -1,9 +1,9 @@
 """試験の支度。
 
-- Hermes が手元に無くても走るように、上流の agent.secret_scope と plugins.plugin_storage を偽物で置く。
-- 網には出ない。OpenWeather の返しは偽物（FakeHttp）で置き換える。
+- Hermes が手元に無くても走るように、本家の agent.secret_scope と plugins.plugin_storage を偽物で置く。
+- 通信には出ない。OpenWeather の返しは偽物（FakeHttp）で置き換える。
 - 偽の値は、どれも誰のものでもない形にする（test-key、緯度経度 0.0 など）。
-- プラグインの家は、上流の読み込みと同じ形（家を submodule の道にした spec）で "omonpakari" として読む。
+- プラグインの家は、本家の読み込みと同じ形（家を submodule の道にした spec）で "omonpakari" として読む。
 """
 
 from __future__ import annotations
@@ -40,7 +40,7 @@ from omonpakari import quiet_context, storage  # noqa: E402
 
 
 class FakeDb:
-    """上流の plugin_db の代わり。毎回新しい接続を、同じ紙で開く。"""
+    """本家の plugin_db の代わり。毎回新しい接続を、同じ紙で開く。"""
 
     def __init__(self, path: Path) -> None:
         self.path = path
@@ -126,7 +126,7 @@ def hermes(tmp_path, monkeypatch):
     plugin_storage = types.ModuleType("plugins.plugin_storage")
     db = FakeDb(tmp_path / "data.db")
     plugin_storage.plugin_db = db.plugin_db
-    # 公の口の偽物：config.yaml の上の段（timezone ほか）と、手番の出どころ（HERMES_SESSION_SOURCE）。
+    # 公の口の偽物：config.yaml の上の段（timezone ほか）と、回の出どころ（HERMES_SESSION_SOURCE）。
     # 既定は帯が据わっていない（機械の地の時刻）、出どころも空（platform だけで見る）。
     zone = SimpleNamespace(name="", session_source="")
     cli_pkg = types.ModuleType("hermes_cli")

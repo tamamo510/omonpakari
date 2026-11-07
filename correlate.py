@@ -1,13 +1,13 @@
 """気圧との相関の道具 omonpakari_correlate。
 
 溜めた気圧の点（実測を先に、無ければその時刻の予報）から1時間ごとの線を組み、
-各時間に「低い」「下がっている」の札を付ける。
+各時間に「低い」「下がっている」の印を付ける。
 
-- 母の数：線が覆えた全部の時間のうち、それぞれの札が付いた時間の割合。
-- 出来事の割合：記録のうち、その札の時間に入った割合。
+- 母の数：時系列が覆えた全部の時間のうち、それぞれの印が付いた時間の割合。
+- 出来事の割合：記録のうち、その印の時間に入った割合。
 - 二つの比（lift）と、出来事の前の変化の平均と、全時間の変化の平均。
 
-元の数をそのまま返す。医の見立ての文は付けない。数が足りない時はそう札を返す。
+元の数をそのまま返す。医の見立ての文は付けない。数が足りない時はその旨の印を返す。
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ import logging
 import math
 from typing import Any, Callable, Optional
 
-from . import storage
+from . import cycle, storage
 from .journal import KINDS, MAX_LABEL
 from .pressure import MAX_GAP_H
 from .settings import Settings
@@ -28,7 +28,7 @@ TOOL_NAME = "omonpakari_correlate"
 MIN_EVENTS = 5
 MIN_EVENT_DAYS = 3        # 一度の重い日に固まった記録だけで比を言わない
 MIN_HOURS = 72
-SMALL_SAMPLE_DAYS = 10    # これより少ない日数の比は、早い見えとして札を付ける
+SMALL_SAMPLE_DAYS = 10    # これより少ない日数の比は、早い見えとして印を付ける
 MIN_DROP_HPA = 0.5
 MAX_DROP_HPA = 50.0
 MAX_LABELS = 8
@@ -88,7 +88,7 @@ def _mean(values: list[float]) -> Optional[float]:
 
 def _tally(series, times: list[int], low_hpa: float, window_s: int, drop: float,
            tz_mins: Optional[list[int]] = None) -> dict:
-    """時刻の並びに札を付けて数える。tz_mins を渡せば、気圧の見えた記録の地の日付も数える。"""
+    """時刻の並びに印を付けて数える。tz_mins を渡せば、気圧の見えた記録の地の日付も数える。"""
     out = {"with_pressure": 0, "in_low": 0, "change_known": 0, "in_falling": 0, "_deltas": [],
            "_days": set()}
     for i, t in enumerate(times):
@@ -201,6 +201,35 @@ def run(settings: Settings, args: dict) -> dict:
         "settings": settings_used,
         "note": "Counts only. Small samples are noisy, and pressure is one factor among many.",
     }
+    # 生理の時期ごとの数も添える（巡りが2回以上見えている時だけ）。
+    try:
+        with storage.connect() as conn:
+            marks = cycle.load_marks(conn)
+    except Exception:
+        marks = []
+    summary = cycle.summarize(marks, now) if marks else {}
+    if summary.get("cycles_observed", 0) >= 2:
+        phase_counts: dict[str, int] = {}
+        for at_utc, _key, _text, _tz in events:
+            phase = cycle.phase_at(marks, int(at_utc))
+            if phase:
+                phase_counts[phase] = phase_counts.get(phase, 0) + 1
+        day_counts: dict[str, int] = {}
+        total_days = 0
+        day = start
+        while day <= now:
+            phase = cycle.phase_at(marks, day + 12 * 3600)
+            if phase:
+                day_counts[phase] = day_counts.get(phase, 0) + 1
+                total_days += 1
+            day += 86400
+        if phase_counts and total_days:
+            total_events = sum(phase_counts.values())
+            out["by_phase"] = {
+                phase: {"entries": count,
+                        "share_of_entries": _share(count, total_events),
+                        "share_of_days": _share(day_counts.get(phase, 0), total_days)}
+                for phase, count in sorted(phase_counts.items(), key=lambda kv: -kv[1])}
     if kind == "any" or not (label and label.strip()):
         groups: dict[str, dict] = {}
         for at_utc, key, text, _tz in events:

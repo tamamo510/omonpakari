@@ -1,7 +1,7 @@
 """設定と鍵の読み方。
 
 設定は ctx.get_config（plugins.entries.omonpakari.settings.<鍵>）から読む。
-鍵は上流の決まりどおり agent.secret_scope.get_secret で読み、os.environ を直に読まない。
+鍵は本家の決まりどおり agent.secret_scope.get_secret で読み、os.environ を直に読まない。
 座標の既定値は持たない。使う人が設定か道具の引数で渡した時だけ使う。
 """
 
@@ -32,7 +32,7 @@ class Thresholds:
 
 
 def read_secret(name: str = API_KEY_NAME) -> Optional[str]:
-    """鍵を上流の道から読む。読めない時（範囲の外の呼び出しを含む）は None。値は外へ出さない。"""
+    """鍵を本家の道から読む。読めない時（範囲の外の呼び出しを含む）は None。値は外へ出さない。"""
     try:
         from agent.secret_scope import get_secret
     except Exception:  # Hermes の外では鍵の道が無い
@@ -116,8 +116,24 @@ class Settings:
             logger.debug("omonpakari: could not save location (%s)", type(exc).__name__)
             return False
 
+    def interaction_window_h(self) -> float:
+        """吸収の確かめで「近い」と見る間合い（時間）。使う人が設定で変えられる。"""
+        value = _as_float(self.get("interaction_window_h", 2.0))
+        if value is None:
+            return 2.0
+        return max(0.5, min(12.0, value))
+
     def quiet_context(self) -> bool:
         return self._bool("quiet_context", True)
+
+    def first_word_turns(self) -> bool:
+        """宿主が自分で起きる定時の回（cron）でも求心路を置くか。本人が開く設定。既定は切。
+
+        朝の回のように、宿主が決まった時刻に自分で起きて一声かける自律拍動では、
+        今日の所見が載らないと慮りの一声にならない。ただし自動の知らせに体調の求心路が
+        混ざる道を作らないため、既定は切で、本人が自分で開いた時だけ cron を通す。
+        """
+        return self._bool("first_word_turns", False)
 
     def background_refresh(self) -> bool:
         return self._bool("background_refresh", True)

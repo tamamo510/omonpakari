@@ -1,14 +1,20 @@
 """声の前に静かに状態を置くフック（pre_llm_call）。
 
-- 使う人が声をかけた手番の前にだけ働く。自分から声をかける口は持たない。
-  定時の実行（cron）、子の手番（subagent）、外からの呼び出し（webhook）、看板の働き手（kanban）ほか、
-  使う人のいない手番では、札も置かず取り直しもしない（UNATTENDED_PLATFORMS）。
-  自動の知らせの文に体調の札が混ざって、使う人や別の誰かへ届く道を作らないため。
-- 読むのは記録（plugin_db）だけで、手番の中で網に出ない。
-- 置くのは英語の短い札で、800字に収める。使う人に話しかける文にしない。
+- 声をかける口そのものは宿主の側にある。この求心路は、その一声の材料になる今日の所見を持つ係。
+  催促はしない。でも要る時は、宿主の自律拍動で自分から静かに声をかけるのも慮りで、
+  その材料がいつでも組める形でここにある。
+- 使う人のいない回では、求心路も働かせず取り直しもしない（UNATTENDED_PLATFORMS）。
+  定時の実行（cron）、子の回（subagent）、外からの呼び出し（webhook）、看板の働き手（kanban）ほか。
+  自動の知らせの文に体調の求心路が混ざって、使う人や別の誰かへ届く道を作らないため。
+  例外は cron だけ：本人が設定 `first_word_turns` を開いている時だけ、cron の回でも求心路を置く。
+  朝の回のように宿主が自分で起きて本人へ一声かける自律拍動で、今日の所見が要るため。既定は切。
+- 読むのは記録（plugin_db）だけで、回の中で通信に出ない。
+- 置くのは英語の短い求心路の文で、1200字に収める。気圧、生理の時期、今日の吸収の衝突、
+  直近の記録、暮らしの覚えを「今日のその人」の所見として並べ、結びは縛りではなく
+  慮りの指示（どの話題でも、提案の前にこの所見を踏まえる）にする。使う人に話しかける文にしない。
 - 置いた文は会話の記録に残るので、同じ会話で中身が変わらない時は置かない。
-- 気圧の溜めが古い時だけ、手番を待たせない背景の糸で一度取り直す（1時間に1回まで）。
-  その結果は次の手番から使う。失敗は黙って飲む。
+- 気圧の溜めが古い時だけ、回を待たせない背景の糸で一度取り直す（1時間に1回まで）。
+  その結果は次の回から使う。失敗は黙って飲む。
 - {"action": "block"} は決して返さない。
 """
 
@@ -22,13 +28,13 @@ import time
 from collections import OrderedDict
 from typing import Any, Callable, Optional
 
-from . import pressure, storage
+from . import cycle, interactions, life, part_symptoms, pressure, states, storage
 from .journal import limit_counts
 from .settings import Settings, read_secret
 
 logger = logging.getLogger(__name__)
 
-MAX_CHARS = 800
+MAX_CHARS = 1200
 NOW_FRESH_S = 3 * 3600          # これより新しい実測は「今」の値として言う
 FETCH_USABLE_S = 72 * 3600      # これより古い取りからは、今の値を推さない
 JOURNAL_WINDOW_S = 48 * 3600
@@ -38,24 +44,29 @@ REPEAT_AFTER_S = 6 * 3600       # 同じ中身でも、これだけ経てば置�
 REFRESH_AFTER_S = 60 * 60
 REFRESH_MIN_INTERVAL_S = 60 * 60
 SESSION_MEMORY = 256
-# 予定の話の時は気圧だけ。記録は、使う人が自分の体の具合を話した時か、尋ねた時だけ
-FOOTER = ("Background only. Do not bring this up on your own. Mention pressure only if the user talks "
-          "about how they feel or their plans, or asks; mention journal entries only if they talk about "
-          "how they feel or ask.")
+# 求心路の結び。縛りではなく、慮りの指示：日常のどの話題でも、提案の前にこの所見を踏まえる。
+# 催促はしない。変えるのは会話の中での察し方だけ（声をかける口は宿主の側にある）。
+FOOTER = ("Background only - a quiet picture of today, not a message. Let it inform any topic "
+          "(plans, meals, drinks, going out, rest): weigh it before suggesting, prefer the person's "
+          "own alternatives listed above, and do not propose an item flagged under interactions "
+          "today near its conflicting entry. Do not lecture, diagnose, or recite these numbers, "
+          "and do not mention this note itself.")
 
-# 使う人が声をかけていない手番の名。platform と、上流の手番の出どころ（HERMES_SESSION_SOURCE）の両方で見る。
+# 使う人が声をかけていない回の名。platform と、本家の回の出どころ（HERMES_SESSION_SOURCE）の両方で見る。
 # 定時の実行（cron）、delegate_task の子（subagent）、外からの呼び出し（webhook）、看板の働き手（kanban）、
 # 一括の実行（batch）、技の手入れ（curator）、道具や別の器から起きた実行（tool、a2a）。
-# どれも使う人が今その場で声をかけた手番ではなく、答えが別の誰かや別の場へ届きうる。
+# どれも使う人が今その場で声をかけた回ではなく、答えが別の誰かや別の場へ届きうる。
 UNATTENDED_PLATFORMS = frozenset({"cron", "subagent", "webhook", "msgraph_webhook", "kanban", "batch",
                                   "curator", "tool", "a2a"})
 
 
-def _unattended(platform: Any) -> bool:
-    """使う人のいない手番なら True。
+def _unattended(platform: Any, allow_cron: bool = False) -> bool:
+    """使う人のいない回なら True。
 
     出どころは公の口（gateway.session_context.get_session_env）で読む。看板の働き手は platform が cli の
     まま走るので、platform だけでは見分けられない。口の無い古い Hermes では platform だけで見る。
+    allow_cron（本人が first_word_turns を開いている）の時は、cron だけの回を通す。
+    cron と他の出どころが重なっている回は通さない。
     """
     names = {str(platform or "").strip().lower()}
     try:
@@ -64,7 +75,10 @@ def _unattended(platform: Any) -> bool:
         names.add(str(get_session_env("HERMES_SESSION_SOURCE", "") or "").strip().lower())
     except Exception:
         pass
-    return bool(names & UNATTENDED_PLATFORMS)
+    hit = names & UNATTENDED_PLATFORMS
+    if allow_cron and hit == {"cron"}:
+        return False
+    return bool(hit)
 
 
 CLOCK: Callable[[], float] = time.monotonic  # 試験で差し替える
@@ -76,7 +90,7 @@ _last_refresh: dict[str, float] = {}
 
 
 def _clean_label(text: str) -> str:
-    """使う人の言葉を札に載せる形にする（改行と山括弧を除き、短く）。"""
+    """使う人の言葉を求心路に載せる形にする（改行と山括弧を除き、短く）。"""
     flat = " ".join(str(text).replace("<", " ").replace(">", " ").split())
     return flat if len(flat) <= MAX_LABEL_CHARS else flat[: MAX_LABEL_CHARS - 1] + "…"
 
@@ -159,40 +173,138 @@ def _journal_lines(conn, now: int) -> tuple[list[str], list[str], Any]:
     return items, limits, fingerprint
 
 
+def _cycle_line(conn, now: int) -> tuple[Optional[str], Any]:
+    """生理の時期の見立てを1行に。巡りが読めなければ何も置かない。"""
+    marks = cycle.load_marks(conn)
+    if not marks:
+        return None, None
+    summary = cycle.summarize(marks, now)
+    phase = summary.get("phase")
+    if not phase:
+        return None, None
+    parts = [f"cycle: day {summary.get('days_since_start', '?')} of the cycle, {phase}"]
+    window = summary.get("next_window")
+    if window:
+        parts.append(f"next period window {window['earliest']} to {window['latest']} "
+                     f"(observed lengths {summary.get('cycle_length_min')}-"
+                     f"{summary.get('cycle_length_max')} days, avg {summary.get('cycle_length_avg')})")
+    return "; ".join(parts) + ".", (phase, summary.get("days_since_start"),
+                                   window["earliest"] if window else None)
+
+
+def _interaction_lines(conn, now: int, settings: Settings) -> tuple[list[str], int, Any]:
+    """今日の吸収の衝突を、事実として短く。代替の覚えがあれば一緒に。
+
+    未収載の組そのものは求心路に並べないが、数だけは1行で置く。普段の会話でも
+    無言で通さないため（中身の照合は道具か、その場の知識と出典で）。
+    """
+    scanned = interactions.scan(conn, now, 1, settings.interaction_window_h())
+    hits = [h for h in scanned if h["effect"] != "unlisted"]
+    unchecked = sum(1 for h in scanned if h["effect"] == "unlisted")
+    lines = []
+    for hit in hits:
+        first, second = hit["entries"][0], hit["entries"][1]
+        text = (f"{_clean_label(second['label'])} ({hit['substance']}, {hit['effect']}) "
+                f"{abs(hit['minutes_apart'])} min from {_clean_label(first['label'])}")
+        for alt in hit.get("person_alternative", [])[:1]:
+            text += f"; person's alternative: {_clean_label(alt['text'])}"
+        lines.append(text)
+    fingerprint = [(h["substance"], h["entries"][1]["at"], h["entries"][0]["at"]) for h in hits]
+    return lines, unchecked, fingerprint
+
+
+def _life_lines(conn) -> tuple[list[str], Any]:
+    """暮らしの覚えを短く。会話の持っていき方に効かせる材料。"""
+    notes = life.load_notes(conn)
+    lines = [f"{_clean_label(n['topic'])}: {_clean_label(n['text'])}" for n in notes[:4]]
+    return lines, [(n["topic"], n["updated"]) for n in notes]
+
+
 def build(settings: Settings, now: Optional[int] = None) -> tuple[Optional[str], Any]:
-    """置く札と、その中身の指紋を組む。置くものが無ければ (None, None)。"""
+    """置く求心路と、その中身の指紋を組む。置くものが無ければ (None, None)。"""
     now = storage.now_utc() if now is None else now
     with storage.connect() as conn:
         pressure_line, pressure_fp = _pressure_line(conn, now, settings)
         items, limits, journal_fp = _journal_lines(conn, now)
-    if pressure_line is None and not items and not limits:
+        cycle_line, cycle_fp = _cycle_line(conn, now)
+        clash_lines, unchecked_count, clash_fp = _interaction_lines(conn, now, settings)
+        life_lines, life_fp = _life_lines(conn)
+        symptom_part = part_symptoms.state(settings, conn, now)
+        symptom_waves = symptom_part["waves"] if symptom_part else []
+        try:
+            state_map = states.compute(settings, conn, now)
+        except Exception:
+            state_map = {}
+    wave_line = None
+    if symptom_waves:
+        wave_line = "waves: " + "; ".join(
+            f"{_clean_label(w['label'])} {w['direction']} ({w['this_week']} vs {w['last_week']})"
+            for w in symptom_waves) + "."
+    state_line = None
+    if state_map:
+        state_line = "states: " + "; ".join(
+            f"{name} {s['signal']} ({s['basis']})"
+            for name, s in list(state_map.items())[:5]) + "."
+    unchecked_line = None
+    if unchecked_count:
+        unchecked_line = (f"unchecked pairs today: {unchecked_count} "
+                          "(not in the reference table - verify from knowledge before suggesting combinations).")
+    if (pressure_line is None and not items and not limits and cycle_line is None
+            and not clash_lines and not life_lines and wave_line is None and state_line is None
+            and unchecked_line is None):
         return None, None
 
     tail = "\n" + FOOTER + "\n</omonpakari>"
 
-    def compose(journal_items: list[str], limit_items: list[str]) -> str:
+    def compose(journal_items: list[str], limit_items: list[str], life_items: list[str],
+                with_unchecked: bool = True) -> str:
         lines = ["<omonpakari>"]
         if pressure_line:
             lines.append(pressure_line)
+        if cycle_line:
+            lines.append(cycle_line)
+        if wave_line:
+            lines.append(wave_line)
+        if state_line:
+            lines.append(state_line)
+        if clash_lines:
+            lines.append("interactions today: " + "; ".join(clash_lines) + ".")
         if journal_items:
             lines.append("journal (last 48h): " + "; ".join(journal_items) + ".")
         if limit_items:
             lines.append("user-set limits: " + "; ".join(limit_items) + ".")
+        if life_items:
+            lines.append("life notes: " + "; ".join(life_items) + ".")
+        if unchecked_line and with_unchecked:
+            lines.append(unchecked_line)
         return "\n".join(lines) + tail
 
-    # 収まらない時は、記録の古い方から、次に上限の後ろから落とす。終わりの一文（FOOTER）は決して削らない。
+    # 収まらない時は、暮らしの覚えの後ろから、次に未収載の行、記録の古い方、上限の後ろの順に落とす。
+    # 気圧・周期・吸収の確かめと、終わりの一文（FOOTER）は決して削らない。
     kept_limits = list(limits)
-    text = compose(items, kept_limits)
+    kept_life = list(life_lines)
+    kept_unchecked = True
+    text = compose(items, kept_limits, kept_life, kept_unchecked)
+    while len(text) > MAX_CHARS and kept_life:
+        kept_life = kept_life[:-1]
+        text = compose(items, kept_limits, kept_life, kept_unchecked)
+    while len(text) > MAX_CHARS and kept_unchecked and unchecked_line:
+        kept_unchecked = False
+        text = compose(items, kept_limits, kept_life, kept_unchecked)
     while len(text) > MAX_CHARS and items:
         items = items[:-1]
-        text = compose(items, kept_limits)
+        text = compose(items, kept_limits, kept_life, kept_unchecked)
     while len(text) > MAX_CHARS and kept_limits:
         kept_limits = kept_limits[:-1]
-        text = compose(items, kept_limits)
+        text = compose(items, kept_limits, kept_life, kept_unchecked)
     if len(text) > MAX_CHARS:
         body = text[: len(text) - len(tail)]
         text = body[: MAX_CHARS - len(tail) - 1] + "…" + tail
-    return text, json.dumps([pressure_fp, journal_fp], default=str)
+    fingerprint = json.dumps([pressure_fp, journal_fp, cycle_fp, clash_fp, unchecked_count, life_fp,
+                              [(w["label"], w["direction"], w["this_week"]) for w in symptom_waves],
+                              sorted((k, v["signal"]) for k, v in state_map.items())],
+                             default=str)
+    return text, fingerprint
 
 
 def _should_place(session_id: str, fingerprint: str, is_first_turn: bool) -> bool:
@@ -243,7 +355,7 @@ def maybe_refresh(settings: Settings, now: Optional[int] = None) -> bool:
         return False
     if not _refresh_lock.acquire(blocking=False):
         return False
-    # 間合いは錠を持ってから見る（同じ時に来た二つの手番が、前の取りの終わり際に二度取りに行かない）
+    # 間合いは錠を持ってから見る（同じ時に来た二つの回が、前の取りの終わり際に二度取りに行かない）
     if now - _last_refresh.get(place, 0) < REFRESH_MIN_INTERVAL_S:
         _refresh_lock.release()
         return False
@@ -267,12 +379,12 @@ def maybe_refresh(settings: Settings, now: Optional[int] = None) -> bool:
 
 
 def make_hook(settings: Settings) -> Callable[..., Optional[dict]]:
-    # 上流の決まりで **kwargs を受ける（plugins doctor --ci は、無いと先々の引数の足しに耐えないと落とす）。
+    # 本家の決まりで **kwargs を受ける（plugins doctor --ci は、無いと先々の引数の足しに耐えないと落とす）。
     # 受け取った user_message と conversation_history は読まず、どこにも残さない。
     def quiet_context(session_id: str = "", is_first_turn: bool = False, platform: str = "",
                       **kwargs: Any) -> Optional[dict]:
-        if _unattended(platform):
-            return None  # 使う人のいない手番には、何も置かず網にも出ない
+        if _unattended(platform, allow_cron=settings.first_word_turns()):
+            return None  # 使う人のいない回には、何も置かず通信にも出ない
         try:
             maybe_refresh(settings)
         except Exception:
@@ -284,7 +396,7 @@ def make_hook(settings: Settings) -> Callable[..., Optional[dict]]:
             if not text or not _should_place(str(session_id or ""), fingerprint, bool(is_first_turn)):
                 return None
             return {"context": text}
-        except Exception as exc:  # 手番を壊さない
+        except Exception as exc:  # 回を壊さない
             logger.debug("omonpakari: quiet context skipped (%s)", type(exc).__name__)
             return None
 

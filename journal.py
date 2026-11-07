@@ -2,7 +2,7 @@
 
 症状、薬やサプリ、ひと言の覚えを、使う人自身の言葉（label）で残す。
 決まった症状の名も、決め打ちの薬の名も持たない。言葉の全文は溜めない。
-書く時は網に出ず、溜めてある気圧のうち時刻のいちばん近い値を添える。
+書く時は通信に出ず、溜めてある気圧のうち時刻のいちばん近い値を添える。
 薬の上限は、使う人が決めた時だけ数として添える。警告の文は作らない。
 """
 
@@ -18,7 +18,7 @@ from .settings import Settings
 logger = logging.getLogger(__name__)
 
 TOOL_NAME = "omonpakari_log"
-KINDS = ("symptom", "medication", "note")
+KINDS = ("symptom", "medication", "supplement", "food", "note")
 MAX_LABEL = 80
 MAX_NOTE = 280
 MAX_DOSE = 40
@@ -29,8 +29,10 @@ PRESSURE_MATCH_S = 90 * 60   # 前後90分以内の気圧を添える
 SCHEMA = {
     "name": TOOL_NAME,
     "description": (
-        "The user's own health journal. action=add records a symptom, a medication or supplement, or a "
-        "short note, in the user's own words, only when the user mentions it. action=list reads entries "
+        "The user's own health journal. action=add records a symptom, a medication, a supplement, "
+        "food or drink, or a short note, in the user's own words, only when the user mentions it. "
+        "Keep the kinds separate: supplements and food are not medications, because the interactions "
+        "tool reads them by kind and time. action=list reads entries "
         "back (with counts against any limit the user set). action=delete removes one entry, "
         "action=set_limit stores a limit the user chose for a medication (omit max_count to clear it), "
         "action=purge erases everything (requires confirm=true). No reminders, no advice."
@@ -124,7 +126,7 @@ _ENTRY_COLUMNS = "id, kind, label, severity, dose, note, at_utc, tz_min, pressur
 
 
 def nearest_pressure(conn, at_utc: int) -> Optional[float]:
-    """前後90分以内でいちばん近い気圧（実測を先に、無ければ予報）。網には出ない。"""
+    """前後90分以内でいちばん近い気圧（実測を先に、無ければ予報）。通信には出ない。"""
     for kinds in (("observed",), ("observed", "forecast")):
         marks = ",".join("?" for _ in kinds)
         row = conn.execute(
@@ -292,7 +294,7 @@ def _purge(conn, args: dict) -> dict:
         return _error("confirm_required", hint="Only when the user clearly asked to erase everything.")
     counts = {}
     with conn:
-        for table in ("journal", "med_limits", "pressure_samples"):
+        for table in ("journal", "med_limits", "pressure_samples", "cycle_marks", "life_notes"):
             counts[table] = conn.execute(f"DELETE FROM {table}").rowcount
     return {"ok": True, "erased": counts}
 

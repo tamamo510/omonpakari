@@ -1,8 +1,8 @@
 """気圧の取り寄せ（OpenWeather の無料の 2.5 の口）、伏せ、判じ。
 
-- 鍵が無い時、座標が無い時、網が落ちた時も、例外を投げずに理由の札を返す。
+- 鍵が無い時、座標が無い時、通信が落ちた時も、例外を投げずに理由の印を返す。
 - 鍵は問いの住所の中（appid）に入るので、例外の文は外へ出さない。帳に残す時も伏せる。
-- 判じ（assess）は網にも記録にも触れない純な関数にしておく。
+- 判じ（assess）は通信にも記録にも触れない純な関数にしておく。
 """
 
 from __future__ import annotations
@@ -43,7 +43,7 @@ REASON_HINTS = {
 
 
 class FetchError(Exception):
-    """取り寄せの失敗。外へは reason の札だけを出す。"""
+    """取り寄せの失敗。外へは reason の印だけを出す。"""
 
     def __init__(self, reason: str) -> None:
         super().__init__(reason)
@@ -75,11 +75,11 @@ def redact(text: str, secrets: tuple = ()) -> str:
 
 
 # ---------------------------------------------------------------------------
-# 網（試験では HTTP_GET を差し替える）
+# 通信（試験では HTTP_GET を差し替える）
 # ---------------------------------------------------------------------------
 
 def _http_get(url: str, params: dict, timeout: float) -> tuple[int, bytes]:
-    """GET して (状態の番号, 本文) を返す。網の失敗だけを例外として上げる。"""
+    """GET して (状態の番号, 本文) を返す。通信の失敗だけを例外として上げる。"""
     request = urllib.request.Request(
         f"{url}?{urllib.parse.urlencode(params)}",
         headers={"User-Agent": "omonpakari-hermes-plugin", "Accept": "application/json"},
@@ -97,7 +97,7 @@ HTTP_GET: Callable[[str, dict, float], tuple[int, bytes]] = _http_get
 def _call(url: str, params: dict, timeout: float, secrets: tuple) -> dict:
     try:
         status, body = HTTP_GET(url, params, timeout)
-    except Exception as exc:  # 網の失敗。文には住所が入りうるので伏せて帳にだけ残す
+    except Exception as exc:  # 通信の失敗。文には住所が入りうるので伏せて帳にだけ残す
         logger.debug("omonpakari: network error %s: %s", type(exc).__name__, redact(str(exc), secrets))
         raise FetchError("network") from None
     if status == 401:

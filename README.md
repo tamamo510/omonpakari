@@ -1,59 +1,98 @@
 # omonpakari
 
-A quiet barometric-pressure and symptom journal for
+Considerate health context for
 [Hermes Agent](https://github.com/NousResearch/hermes-agent).
 
 *Omonpakari* (慮り) is a Japanese word for considerate foresight: thinking
 ahead for someone, including what they have not said out loud.
 
+It is built, above all, for living alongside someone whose body moves in
+waves — a partner whose hormonal rhythm means some weeks are heavier
+than others. Care that ignores the body lands as friction; care that
+remembers — her cycle, her sleep, what she usually drinks in the
+morning — lands as care. omonpakari gives the agent that memory, so its
+kindness is informed instead of generic.
+
 ## What it does
 
-People with weather-sensitive headaches, migraines, joint pain or chronic
-fatigue often feel a pressure drop before they can name it. Most trackers
-answer with reminders and check-ins, which become one more thing to keep up
-with.
-
-omonpakari gives your Hermes agent the facts instead, and leaves the talking
-to you:
+Most health trackers treat a person as a list of measurements to be checked
+off, and answer with reminders and check-ins that become one more burden.
+omonpakari takes the opposite shape: it gives the agent the material to
+*know the person*, and lets that knowledge quietly shape any conversation —
+plans, meals, an outing, work, rest — the way someone who lives with them
+would.
 
 - **Pressure now, before and ahead.** Current barometric pressure, how it
   changed over the past hours and how it is forecast to change (OpenWeather).
-- **A journal in your own words.** Symptoms, medications or supplements, and
-  short notes. No fixed list of conditions or drug names.
-- **Patterns on request.** Compares your entries with pressure, against how
-  common low or falling pressure was overall, with raw counts.
-- **Quiet background context.** Before each reply, a short factual note about
-  pressure and the last 48 hours of entries, so the agent can adjust its tone
-  without asking.
+- **A journal in your own words, typed by kind.** Symptoms, medications,
+  supplements, food and drink, and short notes — kept as separate kinds,
+  because *when* something was taken matters as much as *what*.
+- **A cycle that respects irregularity.** Period starts and ends, observed
+  cycle lengths, the next window returned as a **range of dates** (never a
+  single predicted day), and the current phase as a tentative estimate.
+- **Interaction checks, with sources.** A reference table of common
+  interactions — absorption around iron (cocoa, tea tannins, coffee, soy
+  protein, calcium and other minerals inhibit it; vitamin C and citric acid
+  help), and pairings beyond iron, such as NSAIDs with alcohol, two NSAIDs
+  together, or acetaminophen with alcohol — matched against your journal by
+  time and reported as facts, before the agent ever proposes the
+  combination. The table is a starting set, meant to grow: an organ does
+  not get to declare part of what reaches it "not my department".
+- **Life notes: the person's own alternatives.** Habits and usual choices
+  the user teaches ("in the morning I drink hojicha, non-caffeine"), stored
+  in their words. When a suggestion conflicts with their body, the agent can
+  offer the remembered alternative instead of a generic one.
+- **Patterns on request.** Entries compared with pressure — and with cycle
+  phase — against baselines, with raw counts.
+- **A quiet picture of today.** Before each reply, a short note assembles
+  pressure, cycle phase, today's interaction flags, recent entries and life
+  notes, so the agent can weigh them *before* suggesting anything.
+
+Why the check exists: suggest a warm cup of cocoa to someone who takes
+iron in the morning, and the cocoa quietly blocks roughly 71% of that
+iron's absorption. It is the kind of mistake any well-meaning agent can
+make in any home — the knowledge exists, but nothing checks it at the
+moment of the suggestion. omonpakari puts the check between knowing and
+speaking.
 
 ## Considerate by design
 
-- **It never starts a conversation.** No reminders, schedules, notifications
-  or "did you take your medication?". There is no code path that sends a
-  message on its own.
-- **The hook only places context.** `pre_llm_call` runs before a turn *you*
-  started. It reads local storage, adds a short note (at most 800 characters)
-  ending with a line that tells the agent not to bring it up on its own
-  (pressure only when you talk about how you feel or your plans, or ask;
-  journal entries only when you talk about how you feel or ask), and never
-  blocks a turn.
+- **No pestering, ever.** No reminders, no "did you take your medication?",
+  no repeated nudges, nothing that hurries the person into acting. But
+  *not pestering* is not the same as *never speaking first*: a quiet
+  word first, when the moment genuinely calls for one — a sharp
+  pressure fall ahead of a planned outing, a cycle window opening on a
+  heavy day — is part of what consideration means. There is no quota or
+  template for that; it is the judgment of someone who knows the
+  person, not a notification policy. The sending channel
+  belongs to the host (Hermes); this plugin's part is to always have the
+  honest picture ready, in and out of conversation.
+- **The hook places a picture, not a gag.** `pre_llm_call` runs before a
+  turn *you* started. It reads local storage and adds a short note (at most
+  1,200 characters) whose closing line instructs the agent to let the
+  picture inform *any* topic — to weigh it before suggesting, to prefer
+  your own alternatives, and not to propose items flagged under today's
+  interactions near their conflicting entry — while never lecturing,
+  diagnosing or reciting the numbers. It never blocks a turn.
   On turns nobody typed (scheduled cron runs, delegated subagents, webhooks,
   Kanban workers, batch and curator runs, agent-to-agent calls) it does
   nothing at all, so health context never ends up in an automated message.
-  When the note has to be shortened, its closing line always stays. It does not
-  read or store your message or the conversation history.
+  It does not read or store your message or the conversation history.
 - **It does not repeat itself.** Within a conversation the note is placed
-  again only when its content changes (new entries, a new pressure reading)
-  or after six hours, because placed context stays in the conversation history.
-- **It never makes you wait.** The hook never calls the network. When the saved
-  location's data is over an hour old, it refreshes once in a background
-  thread, at most once an hour, and only during a turn you started.
-- **Numbers, not verdicts.** No diagnosis, no warnings, no medication advice.
-  If you set your own limit for a medication, the journal reports
-  `count_in_window` against your `max_count`, and nothing more.
-- **Your words stay yours.** The journal stores the short label and note the
-  agent passes, never your whole message. You can delete one entry or purge
-  everything.
+  again only when its content changes or after six hours, because placed
+  context stays in the conversation history.
+- **It never makes you wait.** The hook never calls the network. When the
+  saved location's data is over an hour old, it refreshes once in a
+  background thread, at most once an hour, and only during a turn you
+  started.
+- **Numbers and ranges, not verdicts.** No diagnosis, no warnings, no
+  medication advice. Cycle windows are ranges; phases are estimates;
+  interaction hits are sourced facts about timing. If you set your own
+  limit for a medication, the journal reports `count_in_window` against
+  your `max_count`, and nothing more.
+- **Your words stay yours.** The journal stores the short label and note
+  the agent passes, never your whole message. You can delete one entry or
+  purge everything.
 
 ## Install
 
@@ -76,10 +115,8 @@ also set it in the Desktop app under Settings → Plugins → omonpakari. The
 plugin reads it only through Hermes (`agent.secret_scope.get_secret`). No key
 is stored in this repository.
 
-Only the pressure tool needs the key. Journaling and correlation work without
-it, and without a key the pressure tool returns `missing_key` instead of
-failing. Hermes only asks for `requires_env` at install time; a skipped key
-does not keep the plugin from loading, and you can add it later.
+Only the pressure tool needs the key. Everything else works without it, and
+without a key the pressure tool returns `missing_key` instead of failing.
 
 ### Location
 
@@ -106,11 +143,16 @@ set. Set it when Hermes runs on a server in another zone.
 | Tool | What it does |
 |---|---|
 | `omonpakari_pressure` | Current pressure, `level` (`very_low` / `low` / `normal` / `high`), `trend`, change over the past `window_h` and over the forecast ahead (each with the hours actually covered), the lowest point ahead, and forecast points. Failures return a reason only: `missing_key`, `location_not_set`, `invalid_location`, `auth_failed`, `rate_limited`, `network`, `bad_response`, `http_<status>`. Readings are cached for 30 minutes. |
-| `omonpakari_log` | `add` a `symptom`, `medication` or `note` with the user's own `label`, optional `severity` (1-5), `dose`, `note`, `at`; `list` entries with filters; `delete` one; `set_limit` for a medication; `purge` everything (`confirm: true`). `at` may not be in the future or more than 10 years back. Each new entry gets the nearest stored pressure reading (within 90 minutes) without a network call. |
-| `omonpakari_correlate` | Hourly pressure series from stored readings. Reports the baseline share of low and falling hours, the share of your entries in those hours, their ratio (`lift`), mean pressure change before entries versus all hours, and raw counts. Returns `insufficient_data` below 5 entries with pressure spread over at least 3 days, or below 72 hours of coverage. The falling share is left out (`null`) when fewer than 5 entries have a known change, and `small_sample` is true below 10 days of entries. |
+| `omonpakari_log` | `add` a `symptom`, `medication`, `supplement`, `food` or `note` with the user's own `label`, optional `severity` (1-5), `dose`, `note`, `at`; `list` entries with filters; `delete` one; `set_limit` for a medication; `purge` everything (`confirm: true`). `at` may not be in the future or more than 10 years back. Each new entry gets the nearest stored pressure reading (within 90 minutes) without a network call. |
+| `omonpakari_cycle` | `mark` a period `start` or `end`; `status` returns observed cycle lengths (average, shortest, longest), the next window as a range of dates, days since the last start and the current phase as an estimate; `delete` one mark. A single predicted day is never produced. |
+| `omonpakari_interactions` | `check` scans the journal for entries within the spacing window (default 2 hours, configurable) of an iron entry that are known to inhibit or promote its absorption, with the fact and its source, and attaches the person's own alternative when a life note provides one; `table` returns the reference table itself. |
+| `omonpakari_life` | `set` a life note under a short topic, in the user's words, with an optional `relates` (what this is the person's alternative to); `list`; `delete` by topic. Only what the user taught — the tool never invents a note. |
+| `omonpakari_waves` | The backstage model: pressure, cycle and symptom rhythms composed into states and directions (level and trend, phase and distance to the next window, symptoms gathering or receding week over week). This is what the agent understands today *from* — and why anything it says from it must sound like a person, never like a notification. |
+| `omonpakari_correlate` | Hourly pressure series from stored readings. Reports the baseline share of low and falling hours, the share of your entries in those hours, their ratio (`lift`), mean pressure change before entries versus all hours, and raw counts; with two or more observed cycles it also breaks entries down `by_phase`. Returns `insufficient_data` below 5 entries with pressure spread over at least 3 days, or below 72 hours of coverage. `small_sample` is true below 10 days of entries. |
 
 The bundled skill `omonpakari:omonpakari` tells the agent how to use all of
-this without nagging or diagnosing.
+this: consider first, check combinations before proposing them, prefer the
+person's own alternatives — without nagging or diagnosing.
 
 ## Settings
 
@@ -122,6 +164,7 @@ All optional, under `plugins.entries.omonpakari.settings`:
 | `low_hpa` / `very_low_hpa` / `high_hpa` | 1010 / 1003 / 1020 | Level thresholds (hPa) |
 | `drop_hpa` | 6 | A change of at least this within `window_h` counts as falling or rising |
 | `window_h` | 24 | Hours for past and forecast change (3-72) |
+| `interaction_window_h` | 2 | Hours around an iron entry that count as "near" for the absorption check (0.5-12) |
 | `quiet_context` | true | Place the background note before replies |
 | `background_refresh` | true | Allow the hourly background refresh for the saved location |
 
@@ -142,8 +185,10 @@ All optional, under `plugins.entries.omonpakari.settings`:
 
 ## Not medical advice
 
-omonpakari helps a person keep track of how they feel. It does not diagnose,
-and it does not suggest starting, stopping or changing any medication.
+omonpakari helps a person keep track of how they feel and what they take.
+It does not diagnose, and it does not suggest starting, stopping or changing
+any medication. The interaction table reports sourced facts about absorption
+timing only.
 
 ## Development
 

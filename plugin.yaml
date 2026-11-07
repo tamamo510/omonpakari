@@ -1,8 +1,8 @@
 name: omonpakari
-version: 0.1.0
+version: 0.2.0
 manifest_version: 2
 api_version: 1
-description: "Quiet barometric-pressure and symptom journal for Hermes: three tools, a pre_llm_call context hook and durable plugin_db storage. It never messages the user on its own."
+description: "Considerate health context for Hermes: pressure, a typed journal, menstrual-cycle windows, sourced absorption-interaction checks and the person's own life notes, placed quietly before each reply by a pre_llm_call hook. No reminders, no pestering; a quiet word first, when the picture truly warrants it, is part of the design."
 author: tamamo510
 license: MIT
 homepage: https://github.com/tamamo510/omonpakari
@@ -12,6 +12,10 @@ requires_hermes: ">=0.22.0"
 provides_tools:
   - omonpakari_pressure
   - omonpakari_log
+  - omonpakari_cycle
+  - omonpakari_interactions
+  - omonpakari_life
+  - omonpakari_waves
   - omonpakari_correlate
 provides_hooks:
   - pre_llm_call
@@ -57,10 +61,18 @@ config_schema:
     type: int
     default: 24
     description: "Hours used for past and forecast pressure change (3-72)."
+  interaction_window_h:
+    type: float
+    default: 2
+    description: "Hours around an iron entry that count as 'near' for the absorption check (0.5-12)."
   quiet_context:
     type: bool
     default: true
     description: "Place a short background note before each reply. Turn off to keep tools only."
+  first_word_turns:
+    type: bool
+    default: false
+    description: "Also place the note on the host's own scheduled turns (cron), so a first word of the day can be spoken from today's picture. Off by default: turn it on only if those scheduled turns speak to the person themselves, never to anyone else."
   background_refresh:
     type: bool
     default: true
